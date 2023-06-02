@@ -19,7 +19,7 @@ namespace FestivalLineupBySpotify_API.Controllers
             Response.Cookies.Append("Verifier", generatedCode.verifier);
             var challenge = generatedCode.challenge;
             var loginRequest = new LoginRequest(
-              new Uri("http://localhost:44331/Login/Callback"),
+              Services.SpotifyApiService.redirectUri,
               Services.SpotifyApiService.clientId,
               LoginRequest.ResponseType.Code
             )
@@ -40,7 +40,7 @@ namespace FestivalLineupBySpotify_API.Controllers
         {
             var verifier = Request.Cookies["Verifier"];
             var initialResponse = await new OAuthClient().RequestToken(
-              new PKCETokenRequest(Services.SpotifyApiService.clientId, code, new Uri("http://localhost:44331/Login/Callback"), verifier)
+              new PKCETokenRequest(Services.SpotifyApiService.clientId, code, Services.SpotifyApiService.redirectUri, verifier)
             );
 
             Response.Cookies.Append("AccessToken", initialResponse.AccessToken);

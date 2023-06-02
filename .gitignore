@@ -1,0 +1,10 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs/FestivalLineupBySpotify/v17/.suo
+/.vs/FestivalLineupBySpotify/v17
+/.vs/FestivalLineupBySpotify/FileContentIndex
+/.vs/FestivalLineupBySpotify/config
+/FestivalLineupBySpotify API/bin
+/FestivalLineupBySpotify API/obj

@@ -7,8 +7,8 @@ namespace FestivalLineupBySpotify_API.Services
     {
         private const string accessTokenCookeName = "AccessToken";
 
-        public static string clientId = Environment.GetEnvironmentVariable("CLIENT_ID");
-
+        internal static string clientId = Environment.GetEnvironmentVariable("CLIENT_ID");
+        internal static Uri redirectUri = new Uri(Environment.GetEnvironmentVariable("REDIRECT_URI"));
 
         public static SpotifyClient CreateSpotifyClient(IRequestCookieCollection cookies)
         {
