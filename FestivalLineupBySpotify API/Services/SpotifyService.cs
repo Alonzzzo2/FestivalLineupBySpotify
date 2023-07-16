@@ -1,3 +1,5 @@
+﻿using FestivalLineupBySpotify_API.Controllers;
+using Newtonsoft.Json;
 using SpotifyAPI.Web.Http;
 using System.Text.RegularExpressions;
 
@@ -13,6 +15,9 @@ namespace FestivalLineupBySpotify_API.Services
             _httpContextAccessor = httpContextAccessor;
         }
 
+        public async Task<ClashFindersFavoritesResult> GenerateClashFindersFavoritesResult(HttpRequest request, string festivalName)
+        {
+            var favArtists = await GetFavArtists(request);
             var festivalEvents = await ClashFindersService.GetEventsFromClashFinders(festivalName);
 
             var artistsWithEvents = GenerateArtistsWithEvents(favArtists, festivalEvents);
@@ -31,6 +36,28 @@ namespace FestivalLineupBySpotify_API.Services
 
             var result = new ClashFindersFavoritesResult(highlightsCollection.GenerateUrl(festivalName), artistsWithEvents.Sum(a => a.NumOfLikedTracks));
             return result;
+        }
+
+        private async Task<List<DTO.Artist>> GetFavArtists(HttpRequest request)
+        {
+            if (_httpContextAccessor.HttpContext.Session.Keys.Contains("data"))
+            {
+                var data = _httpContextAccessor.HttpContext.Session.GetString("data");
+                if (data == null)
+                {
+                    return await GetFavArtistsFromSpotify(request);
+                }
+                return JsonConvert.DeserializeObject<List<DTO.Artist>>(data);
+            }
+            return await GetFavArtistsFromSpotify(request);
+        }
+
+        private async Task<List<DTO.Artist>> GetFavArtistsFromSpotify(HttpRequest request)
+        {
+            var spotifyClient = SpotifyApiService.CreateSpotifyClient(request.Cookies);
+            var favArtists = await SpotifyApiService.GetFavoriteArtistsFromSpotify(spotifyClient);
+            _httpContextAccessor.HttpContext.Session.SetString("data", JsonConvert.SerializeObject(favArtists));
+            return favArtists;
         }
 
         private static List<DTO.Artist> GenerateArtistsWithEvents(List<DTO.Artist> favArtists, List<DTO.Event> festivalEvents)
