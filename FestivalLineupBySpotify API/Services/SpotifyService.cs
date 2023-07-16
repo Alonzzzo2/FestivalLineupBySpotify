@@ -1,15 +1,18 @@
-﻿using SpotifyAPI.Web.Http;
+using SpotifyAPI.Web.Http;
 using System.Text.RegularExpressions;
 
 namespace FestivalLineupBySpotify_API.Services
 {
 
-    public static partial class SpotifyService
+    public class SpotifyService : ISpotifyService
     {
-        public static async Task<ClashFindersFavoritesResult> GenerateClashFindersFavoritesResult(HttpRequest request, string festivalName)
+        private readonly IHttpContextAccessor _httpContextAccessor;
+
+        public SpotifyService(IHttpContextAccessor httpContextAccessor)
         {
-            var spotifyClient = SpotifyApiService.CreateSpotifyClient(request.Cookies);
-            var favArtists = await SpotifyApiService.GetFavoriteArtistsFromSpotify(spotifyClient);
+            _httpContextAccessor = httpContextAccessor;
+        }
+
             var festivalEvents = await ClashFindersService.GetEventsFromClashFinders(festivalName);
 
             var artistsWithEvents = GenerateArtistsWithEvents(favArtists, festivalEvents);
