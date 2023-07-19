@@ -10,13 +10,27 @@ namespace FestivalLineupBySpotify_API.Controllers
     [ApiController]
     public class SpotifyController : ControllerBase
     {
-        [HttpGet(Name = "Test Sppotify API call")]
-        public async Task<string> GeneratePersonalizedClashFindersURL(string festivalName)
-        {
-            var result = await SpotifyService.GenerateClashFindersFavoritesResult(Request, festivalName);
-            return result.Url;
-        }
-    }
+        private readonly ISpotifyService _spotifyService;
 
-    
+        public SpotifyController(ISpotifyService spotifyService)
+        {
+            _spotifyService = spotifyService;
+        }
+        
+        [HttpGet]
+        [Route("festival/{festivalName}")]
+        public async Task<ClashFindersFavoritesResult> GenerateForFestival(string festivalName)
+        {
+            var result = await _spotifyService.GenerateClashFindersFavoritesResult(Request, festivalName);
+            return result;
+        }
+
+        [HttpGet]
+        [Route("festivals/{festivalsYear}")]
+        public async Task<List<ClashFindersFavoritesResult>> GenerateForFestivalsYear(int festivalsYear)
+        {
+            var results = await _spotifyService.GenerateClashFindersFavoritesResult(Request, festivalsYear);
+            return results;
+        }
+    }    
 }

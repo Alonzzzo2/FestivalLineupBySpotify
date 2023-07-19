@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using FestivalLineupBySpotify_API.DTO;
+using Newtonsoft.Json.Linq;
 
 namespace FestivalLineupBySpotify_API.Services
 {
@@ -8,6 +9,7 @@ namespace FestivalLineupBySpotify_API.Services
         private static string clashFindersUrl = "https://clashfinder.com";
         private static string lineupUrl(string eventName) => $"{clashFindersUrl}/s/{eventName}";
         private static string lineupDataUrl(string eventName) => $"{clashFindersUrl}/data/event/{eventName}.json";
+        private static string allEventsUrl = "https://clashfinder.com/data/events/events.json";
 
         public static async Task<List<Event>> GetEventsFromClashFinders(string festivalName)
         {
@@ -23,6 +25,17 @@ namespace FestivalLineupBySpotify_API.Services
 
             var events = rootData.Locations.SelectMany(location => location.Events).ToList();
             return events;
+        }
+
+        public static async Task<List<FestivalEvent>> GetAllEventsByYear(int year)
+        {
+            var httpClient = new HttpClient();
+            var response = await httpClient.GetAsync(allEventsUrl);
+            var contentStream = await response.Content.ReadAsStringAsync();
+
+            JObject json = JObject.Parse(contentStream);
+            var festivals = json.Properties().Select(p => new FestivalEvent(p)).Where(f => f.StartDate.Year == DateTime.Now.Year).ToList();
+            return festivals;
         }
 
         public class Highlight
