@@ -1,9 +1,33 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 using System.Collections.Generic;
 
 namespace FestivalLineupBySpotify_API.DTO
 {
+    public class FestivalEvent
+    {
+        private readonly string _name;
+        private readonly string _desc;
+        private readonly long _startDate;
+        private readonly int _numActs;
+        public FestivalEvent(JProperty property)
+        {
+            this._name = property.Value["name"].ToString();
+            this._desc = property.Value["desc"].ToString();
+            this._numActs = Convert.ToInt32(property.Value["numActs"]);
+            this._startDate = (long)Convert.ToDouble(property.Value["startDate"]);
+        }
+
+        public string Name => _name;
+        public string Desc => _desc;
+        public int NumActs => _numActs;
+        public DateTime StartDate {get {
+            var dateTimeOffset = DateTimeOffset.FromUnixTimeSeconds(this._startDate);
+            DateTime dateTime = dateTimeOffset.UtcDateTime;
+            return dateTime;
+        }}
+    }
 
     public class Event
     {

@@ -5,7 +5,6 @@ using System.Text.RegularExpressions;
 
 namespace FestivalLineupBySpotify_API.Services
 {
-
     public class SpotifyService : ISpotifyService
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
@@ -13,6 +12,18 @@ namespace FestivalLineupBySpotify_API.Services
         public SpotifyService(IHttpContextAccessor httpContextAccessor)
         {
             _httpContextAccessor = httpContextAccessor;
+        }
+
+        public async Task<List<ClashFindersFavoritesResult>> GenerateClashFindersFavoritesResult(HttpRequest request, int festivalsYear)
+        {
+            var festivalEvents = await ClashFindersService.GetAllEventsByYear(festivalsYear);
+            List<ClashFindersFavoritesResult> results = new List<ClashFindersFavoritesResult>();
+            festivalEvents.ForEach(festival => {
+                var result = this.GenerateClashFindersFavoritesResult(request, festival.Name).Result;
+                result.FestivalEvent = festival;
+                results.Add(result);
+            });
+            return results.OrderByDescending(r => r.Rank).ToList();
         }
 
         public async Task<ClashFindersFavoritesResult> GenerateClashFindersFavoritesResult(HttpRequest request, string festivalName)
