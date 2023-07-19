@@ -7,26 +7,18 @@ namespace FestivalLineupBySpotify_API.DTO
 {
     public class FestivalEvent
     {
-        private readonly string _name;
-        private readonly string _desc;
-        private readonly long _startDate;
-        private readonly int _numActs;
+        public string Name { get; set; }
+        public string Desc { get; set; }
+        public int NumActs { get; set; }
+        public DateTime StartDate { get; set; }
+
         public FestivalEvent(JProperty property)
         {
-            this._name = property.Value["name"].ToString();
-            this._desc = property.Value["desc"].ToString();
-            this._numActs = Convert.ToInt32(property.Value["numActs"]);
-            this._startDate = (long)Convert.ToDouble(property.Value["startDate"]);
+            Name = property.Value["name"].ToString();
+            Desc = property.Value["desc"].ToString();
+            NumActs = Convert.ToInt32(property.Value["numActs"]);
+            StartDate = DateTimeOffset.FromUnixTimeSeconds((long)(property.Value["startDate"] ?? 0)).UtcDateTime;
         }
-
-        public string Name => _name;
-        public string Desc => _desc;
-        public int NumActs => _numActs;
-        public DateTime StartDate {get {
-            var dateTimeOffset = DateTimeOffset.FromUnixTimeSeconds(this._startDate);
-            DateTime dateTime = dateTimeOffset.UtcDateTime;
-            return dateTime;
-        }}
     }
 
     public class Event
