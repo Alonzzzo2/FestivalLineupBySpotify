@@ -34,7 +34,7 @@ namespace FestivalLineupBySpotify_API.Services
             var contentStream = await response.Content.ReadAsStringAsync();
 
             JObject json = JObject.Parse(contentStream);
-            var festivals = json.Properties().Select(p => new FestivalEvent(p)).Where(f => f.StartDate.Year == DateTime.Now.Year).ToList();
+            var festivals = json.Properties().Select(p => new FestivalEvent(p)).Where(f => f.StartDate.Year == year).ToList();
             return festivals;
         }
 
