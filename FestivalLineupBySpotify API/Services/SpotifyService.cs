@@ -1,5 +1,5 @@
-﻿using FestivalLineupBySpotify_API.Controllers;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
+using Spotify_Alonzzo_API.Services;
 using SpotifyAPI.Web.Http;
 using System.Text.RegularExpressions;
 

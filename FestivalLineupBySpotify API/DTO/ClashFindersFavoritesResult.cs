@@ -7,7 +7,7 @@ namespace FestivalLineupBySpotify_API.Services
     {
         public string Url { get; set; }
 
-        public int TotalPossibleLikesTracks { get; set; }
+        public int TotalPossibleLikedTracks { get; set; }
 
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public FestivalEvent? FestivalEvent { get; set; }
@@ -15,13 +15,13 @@ namespace FestivalLineupBySpotify_API.Services
         public ClashFindersFavoritesResult(string url, int totalPossibleLikesTracks, FestivalEvent? festivalEvent = null)
         {
             Url = url;
-            TotalPossibleLikesTracks = totalPossibleLikesTracks;
-            FestivalEvent = FestivalEvent;
+            TotalPossibleLikedTracks = totalPossibleLikesTracks;
+            FestivalEvent = festivalEvent;
         }
 
         public float Rank {get {
             if (FestivalEvent == null) return 0;
-            return (float)TotalPossibleLikesTracks / FestivalEvent.NumActs;
+            return (float)TotalPossibleLikedTracks / FestivalEvent.NumActs;
         }}
     }
 }

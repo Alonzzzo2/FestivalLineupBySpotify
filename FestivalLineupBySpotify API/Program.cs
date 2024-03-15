@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using FestivalLineupBySpotify_API.Services;
 using SpotifyAPI.Web;
-using FestivalLineupBySpotify_API.Controllers;
+using Spotify_Alonzzo_API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 

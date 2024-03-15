@@ -1,6 +1,6 @@
 using FestivalLineupBySpotify_API.Services;
 
-namespace FestivalLineupBySpotify_API.Controllers
+namespace Spotify_Alonzzo_API.Services
 {
     public interface ISpotifyService
     {

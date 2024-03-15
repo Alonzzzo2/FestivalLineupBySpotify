@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using FestivalLineupBySpotify_API.Services;
 using Microsoft.AspNetCore.Diagnostics;
 using SpotifyAPI.Web;
+using Spotify_Alonzzo_API.Services;
 
 namespace FestivalLineupBySpotify_API.Controllers
 {
