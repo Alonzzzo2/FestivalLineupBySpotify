@@ -6,6 +6,17 @@ using Spotify_Alonzzo_API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Prefer configuration-driven URLs. Only bind Kestrel to a specific port
+// when the environment or configuration provides a numeric PORT (e.g., in containers/PAAS).
+var portValue = builder.Configuration["PORT"] ?? Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(portValue) && int.TryParse(portValue, out var port))
+{
+    builder.WebHost.ConfigureKestrel(options =>
+    {
+        options.ListenAnyIP(port);
+    });
+}
+
 // Add services to the container.
 
 builder.Services.AddSession();
