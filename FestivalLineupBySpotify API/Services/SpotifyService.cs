@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Spotify_Alonzzo_API.Services;
 using SpotifyAPI.Web.Http;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace FestivalLineupBySpotify_API.Services
@@ -26,9 +27,9 @@ namespace FestivalLineupBySpotify_API.Services
             return results.OrderByDescending(r => r.Rank).ToList();
         }
 
-        public async Task<ClashFindersFavoritesResult> GenerateClashFindersFavoritesResult(HttpRequest request, string festivalName)
+        public async Task<ClashFindersFavoritesResult> GenerateClashFindersFavoritesResult(HttpRequest request, string festivalName, bool forceReloadData = false)
         {
-            var favArtists = await GetFavArtists(request);
+            var favArtists = await GetFavArtists(request, forceReloadData);
             var festivalEvents = await ClashFindersService.GetEventsFromClashFinders(festivalName);
 
             var artistsWithEvents = GenerateArtistsWithEvents(favArtists, festivalEvents);
@@ -49,18 +50,14 @@ namespace FestivalLineupBySpotify_API.Services
             return result;
         }
 
-        private async Task<List<DTO.Artist>> GetFavArtists(HttpRequest request)
+        private async Task<List<DTO.Artist>> GetFavArtists(HttpRequest request, bool forceReloadData)
         {
-            if (_httpContextAccessor.HttpContext.Session.Keys.Contains("data"))
+            if (forceReloadData || !_httpContextAccessor.HttpContext.Session.TryGetValue("data", out byte[] dataBytes))
             {
-                var data = _httpContextAccessor.HttpContext.Session.GetString("data");
-                if (data == null)
-                {
-                    return await GetFavArtistsFromSpotify(request);
-                }
-                return JsonConvert.DeserializeObject<List<DTO.Artist>>(data);
+                return await GetFavArtistsFromSpotify(request);
             }
-            return await GetFavArtistsFromSpotify(request);
+            var data = Encoding.UTF8.GetString(dataBytes);
+            return JsonConvert.DeserializeObject<List<DTO.Artist>>(data);
         }
 
         private async Task<List<DTO.Artist>> GetFavArtistsFromSpotify(HttpRequest request)
@@ -79,9 +76,10 @@ namespace FestivalLineupBySpotify_API.Services
                 var favArtistNames = favArtist.Name.ToLower().Split(" ");
                 var favArtistEvents = festivalEvents.Where(festivalEvent =>
                 {
-                    var festivalEventArtists = festivalEvent.Name.ToLower().Split(" ");
+                    char[] separators = { ';', ',', '-', ' ' };
+                    var festivalEventArtists = festivalEvent.Name.ToLower().Split(separators, StringSplitOptions.RemoveEmptyEntries);
                     bool isFavArtistEvent = favArtistNames.All(favArtistName => festivalEventArtists.Contains(favArtistName));
-                    return isFavArtistEvent;
+                    return isFavArtistEvent;    
                 }).ToList();
                 
                 favArtist.Events.AddRange(favArtistEvents);

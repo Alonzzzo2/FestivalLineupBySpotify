@@ -19,10 +19,18 @@ namespace FestivalLineupBySpotify_API.Controllers
         }
         
         [HttpGet]
-        [Route("festival/{festivalName}")]
-        public async Task<ClashFindersFavoritesResult> GenerateForFestival(string festivalName)
+        [Route("festival/{festivalName}/{forceReloadData}")]
+        public async Task<ClashFindersFavoritesResult> GenerateFavoritesForFestival(string festivalName, bool forceReloadData = false)
         {
-            var result = await _spotifyService.GenerateClashFindersFavoritesResult(Request, festivalName);
+            var result = await _spotifyService.GenerateClashFindersFavoritesResult(Request, festivalName, forceReloadData);
+            return result;
+        }
+
+        [HttpGet]
+        [Route("festival/{festivalName}/popular")]
+        public async Task<ClashFindersFavoritesResult> GeneratePopularForFestival(string festivalName, bool forceReloadData = false)
+        {
+            var result = await _spotifyService.GenerateClashFindersFavoritesResult(Request, festivalName, forceReloadData);
             return result;
         }
 
