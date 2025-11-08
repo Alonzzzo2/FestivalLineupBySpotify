@@ -2,53 +2,25 @@
   "profiles": {
     "http": {
       "commandName": "Project",
+      "applicationUrl": "http://localhost:44331",
       "launchBrowser": true,
       "launchUrl": "swagger",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "CLIENT_ID": "e9a721b15ba24be88797327a13d77ed5",
-        "REDIRECT_URI": "http://localhost:44331/Login/Callback"
-      },
-      "dotnetRunMessages": true,
-      "applicationUrl": "http://localhost:44331"
-    },
-    "https": {
-      "commandName": "Project",
-      "launchBrowser": true,
-      "launchUrl": "swagger",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "CLIENT_ID": "e9a721b15ba24be88797327a13d77ed5",
-        "REDIRECT_URI": "https://localhost:44331/Login/Callback"
-      },
-      "dotnetRunMessages": true,      
-      "applicationUrl": "https://localhost:44331"
-    },
-    "IIS Express": {
-      "commandName": "IISExpress",
-      "launchBrowser": true,
-      "launchUrl": "swagger",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "CLIENT_ID": "e9a721b15ba24be88797327a13d77ed5",
+        "CLIENT_ID": "",
         "REDIRECT_URI": "http://localhost:44331/Login/Callback"
       }
     },
-    "Docker": {
-      "commandName": "Docker",
+    "https": {
+      "commandName": "Project",
+      "applicationUrl": "https://localhost:44331",
       "launchBrowser": true,
-      "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}/swagger",
-      "publishAllPorts": true,
-      "useSSL": true
-    }
-  },
-  "$schema": "https://json.schemastore.org/launchsettings.json",
-  "iisSettings": {
-    "windowsAuthentication": false,
-    "anonymousAuthentication": true,
-    "iisExpress": {
-      "applicationUrl": "http://localhost:13362",
-      "sslPort": 44331
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "CLIENT_ID": "",
+        "REDIRECT_URI": "http://localhost:44331/Login/Callback"
+      }
     }
   }
 }
