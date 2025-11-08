@@ -8,7 +8,9 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "CLIENT_ID": "",
-        "REDIRECT_URI": "http://localhost:44331/Login/Callback"
+        "REDIRECT_URI": "http://localhost:44331/Login/Callback",
+        "AUTH_USERNAME": "",
+        "AUTH_PUBLIC_KEY": ""
       }
     },
     "https": {
@@ -19,7 +21,9 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "CLIENT_ID": "",
-        "REDIRECT_URI": "http://localhost:44331/Login/Callback"
+        "REDIRECT_URI": "http://localhost:44331/Login/Callback",
+        "AUTH_USERNAME": "",
+        "AUTH_PUBLIC_KEY": ""
       }
     }
   }

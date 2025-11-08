@@ -7,8 +7,24 @@ namespace FestivalLineupBySpotify_API.Services
     public static class ClashFindersService
     {
         private static string clashFindersUrl = "https://clashfinder.com";
+
+        // Read auth parameters from environment
+        private static readonly string authUsername = Environment.GetEnvironmentVariable("AUTH_USERNAME");
+        private static readonly string authPublicKey = Environment.GetEnvironmentVariable("AUTH_PUBLIC_KEY");
+
         private static string lineupUrl(string eventName) => $"{clashFindersUrl}/s/{eventName}";
-        private static string lineupDataUrl(string eventName) => $"{clashFindersUrl}/data/event/{eventName}.json";
+
+        // Builds the data URL and appends auth query params when available
+        private static string lineupDataUrl(string eventName)
+        {
+            var url = $"{clashFindersUrl}/data/event/{eventName}.json";
+            if (!string.IsNullOrEmpty(authUsername) && !string.IsNullOrEmpty(authPublicKey))
+            {
+                url += $"?authUsername={System.Uri.EscapeDataString(authUsername)}&authPublicKey={System.Uri.EscapeDataString(authPublicKey)}";
+            }
+            return url;
+        }
+
         private static string allEventsUrl = "https://clashfinder.com/data/events/events.json";
 
         public static async Task<List<Event>> GetEventsFromClashFinders(string festivalName)
