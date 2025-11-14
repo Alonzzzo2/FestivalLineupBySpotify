@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SpotifyAPI.Web;
+using FestivalLineupBySpotify_API.Services;
 
 namespace FestivalLineupBySpotify_API.Controllers
 {
@@ -12,10 +13,12 @@ namespace FestivalLineupBySpotify_API.Controllers
     public class LoginController : ControllerBase
     {
         private readonly IConfiguration _configuration;
+        private readonly ISpotifyApiService _spotifyApiService;
 
-        public LoginController(IConfiguration configuration)
+        public LoginController(IConfiguration configuration, ISpotifyApiService spotifyApiService)
         {
             _configuration = configuration;
+            _spotifyApiService = spotifyApiService;
         }
 
         [Route("[action]")]
@@ -23,11 +26,12 @@ namespace FestivalLineupBySpotify_API.Controllers
         public string Login()
         {
             var generatedCode = PKCEUtil.GenerateCodes();            
-            Response.Cookies.Append("Verifier", generatedCode.verifier);
+            // Store verifier in session instead of cookies to support cross-domain scenarios
+            HttpContext.Session.SetString("SpotifyCodeVerifier", generatedCode.verifier);
             var challenge = generatedCode.challenge;
             var loginRequest = new LoginRequest(
-              Services.SpotifyApiService.redirectUri,
-              Services.SpotifyApiService.clientId,
+              _spotifyApiService.RedirectUri,
+              _spotifyApiService.ClientId,
               LoginRequest.ResponseType.Code
             )
             {
@@ -44,6 +48,7 @@ namespace FestivalLineupBySpotify_API.Controllers
         public IActionResult Logout()
         {
             Response.Cookies.Delete("AccessToken");
+            HttpContext.Session.Remove("SpotifyCodeVerifier");
             return Ok();
         }
 
@@ -52,12 +57,22 @@ namespace FestivalLineupBySpotify_API.Controllers
         [HttpGet]
         public async Task<IActionResult> Callback(string code)
         {
-            var verifier = Request.Cookies["Verifier"];
+            // Retrieve verifier from session
+            var verifier = HttpContext.Session.GetString("SpotifyCodeVerifier");
+            
+            if (string.IsNullOrEmpty(verifier))
+            {
+                return BadRequest("PKCE verifier not found in session. Please start authentication again.");
+            }
+
             var initialResponse = await new OAuthClient().RequestToken(
-              new PKCETokenRequest(Services.SpotifyApiService.clientId, code, Services.SpotifyApiService.redirectUri, verifier)
+              new PKCETokenRequest(_spotifyApiService.ClientId, code, _spotifyApiService.RedirectUri, verifier)
             );
 
             Response.Cookies.Append("AccessToken", initialResponse.AccessToken);
+            
+            // Clear the verifier after use
+            HttpContext.Session.Remove("SpotifyCodeVerifier");
             
             var frontendUrl = _configuration["FrontendUrl"]!;
             

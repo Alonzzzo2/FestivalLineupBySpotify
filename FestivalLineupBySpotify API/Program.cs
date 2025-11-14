@@ -1,8 +1,14 @@
-using FestivalLineupBySpotify_API.Services;
 using Microsoft.AspNetCore.DataProtection;
 using Spotify_Alonzzo_API.Services;
+using FestivalLineupBySpotify_API.Configuration;
+using FestivalLineupBySpotify_API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure settings from appsettings
+builder.Services.Configure<SpotifySettings>(builder.Configuration.GetSection("Spotify"));
+builder.Services.Configure<ClashFindersSettings>(builder.Configuration.GetSection("ClashFinders"));
+builder.Services.Configure<CorsSettings>(builder.Configuration.GetSection("Cors"));
 
 // Prefer configuration-driven URLs. Only bind Kestrel to a specific port
 // when the environment or configuration provides a numeric PORT (e.g., in containers/PAAS).
@@ -32,24 +38,29 @@ builder.Services.AddSession(options =>
 
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ISpotifyApiService, SpotifyApiService>();
 builder.Services.AddScoped<ISpotifyService, SpotifyService>();
+builder.Services.AddScoped<ClashFindersService>();
+builder.Services.AddHttpClient();
 
-// Add CORS
+// Add CORS using configuration
+var corsSettings = builder.Configuration.GetSection("Cors").Get<CorsSettings>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:3000", "https://festivallineupbyspotify-fe.onrender.com")
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+        if (corsSettings?.AllowedOrigins?.Length > 0)
+        {
+            policy.WithOrigins(corsSettings.AllowedOrigins)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+        }
     });
 });
-
 
 var app = builder.Build();
 app.UseCors("AllowFrontend");
@@ -63,11 +74,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseMiddleware<ExceptionMiddleware>();
-
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();

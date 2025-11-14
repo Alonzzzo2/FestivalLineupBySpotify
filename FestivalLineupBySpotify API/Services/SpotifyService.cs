@@ -3,21 +3,26 @@ using Spotify_Alonzzo_API.Services;
 using SpotifyAPI.Web.Http;
 using System.Text;
 using System.Text.RegularExpressions;
+using FestivalLineupBySpotify_API.Services;
 
 namespace FestivalLineupBySpotify_API.Services
 {
     public class SpotifyService : ISpotifyService
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ClashFindersService _clashFindersService;
+        private readonly ISpotifyApiService _spotifyApiService;
 
-        public SpotifyService(IHttpContextAccessor httpContextAccessor)
+        public SpotifyService(IHttpContextAccessor httpContextAccessor, ClashFindersService clashFindersService, ISpotifyApiService spotifyApiService)
         {
             _httpContextAccessor = httpContextAccessor;
+            _clashFindersService = clashFindersService;
+            _spotifyApiService = spotifyApiService;
         }
 
         public async Task<List<ClashFindersFavoritesResult>> GenerateClashFindersFavoritesResult(HttpRequest request, int festivalsYear)
         {
-            var festivalEvents = await ClashFindersService.GetAllEventsByYear(festivalsYear);
+            var festivalEvents = await _clashFindersService.GetAllEventsByYear(festivalsYear);
             List<ClashFindersFavoritesResult> results = new List<ClashFindersFavoritesResult>();
             festivalEvents.ForEach(festival => {
                 var result = this.GenerateClashFindersFavoritesResult(request, festival.Name).Result;
@@ -30,7 +35,7 @@ namespace FestivalLineupBySpotify_API.Services
         public async Task<ClashFindersFavoritesResult> GenerateClashFindersFavoritesResult(HttpRequest request, string festivalName, bool forceReloadData = false)
         {
             var favArtists = await GetFavArtists(request, forceReloadData);
-            var festivalEvents = await ClashFindersService.GetEventsFromClashFinders(festivalName);
+            var festivalEvents = await _clashFindersService.GetEventsFromClashFinders(festivalName);
 
             var artistsWithEvents = GenerateArtistsWithEvents(favArtists, festivalEvents);
             var highlightsCollection = new ClashFindersService.HighlightsCollection();
@@ -62,8 +67,8 @@ namespace FestivalLineupBySpotify_API.Services
 
         private async Task<List<DTO.Artist>> GetFavArtistsFromSpotify(HttpRequest request)
         {
-            var spotifyClient = SpotifyApiService.CreateSpotifyClient(request.Cookies);
-            var favArtists = await SpotifyApiService.GetFavoriteArtistsFromSpotify(spotifyClient);
+            var spotifyClient = _spotifyApiService.CreateSpotifyClient(request.Cookies);
+            var favArtists = await _spotifyApiService.GetFavoriteArtistsFromSpotify(spotifyClient);
             _httpContextAccessor.HttpContext.Session.SetString("data", JsonConvert.SerializeObject(favArtists));
             return favArtists;
         }

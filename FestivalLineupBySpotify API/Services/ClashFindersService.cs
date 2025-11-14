@@ -1,52 +1,57 @@
 ﻿using Newtonsoft.Json;
+using FestivalLineupBySpotify_API.Configuration;
 using FestivalLineupBySpotify_API.DTO;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 
 namespace FestivalLineupBySpotify_API.Services
 {
-    public static class ClashFindersService
+    public class ClashFindersService
     {
-        private static string clashFindersUrl = "https://clashfinder.com";
+        private const string ClashFindersUrl = "https://clashfinder.com";
+        private const string AllEventsUrl = "https://clashfinder.com/data/events/events.json";
+        
+        private readonly string _authUsername;
+        private readonly string _authPublicKey;
+        private readonly HttpClient _httpClient;
 
-        // Read auth parameters from environment
-        private static readonly string authUsername = Environment.GetEnvironmentVariable("AUTH_USERNAME");
-        private static readonly string authPublicKey = Environment.GetEnvironmentVariable("AUTH_PUBLIC_KEY");
-
-        private static string lineupUrl(string eventName) => $"{clashFindersUrl}/s/{eventName}";
-
-        // Builds the data URL and appends auth query params when available
-        private static string lineupDataUrl(string eventName)
+        public ClashFindersService(IOptions<ClashFindersSettings> options, HttpClient httpClient)
         {
-            var url = $"{clashFindersUrl}/data/event/{eventName}.json";
-            if (!string.IsNullOrEmpty(authUsername) && !string.IsNullOrEmpty(authPublicKey))
+            _authUsername = options.Value.AuthUsername ?? string.Empty;
+            _authPublicKey = options.Value.AuthPublicKey ?? string.Empty;
+            _httpClient = httpClient;
+        }
+
+        private static string LineupUrl(string eventName) => $"{ClashFindersUrl}/s/{eventName}";
+
+        private string LineupDataUrl(string eventName)
+        {
+            var url = $"{ClashFindersUrl}/data/event/{eventName}.json";
+            if (!string.IsNullOrEmpty(_authUsername) && !string.IsNullOrEmpty(_authPublicKey))
             {
-                url += $"?authUsername={System.Uri.EscapeDataString(authUsername)}&authPublicKey={System.Uri.EscapeDataString(authPublicKey)}";
+                url += $"?authUsername={System.Uri.EscapeDataString(_authUsername)}&authPublicKey={System.Uri.EscapeDataString(_authPublicKey)}";
             }
             return url;
         }
 
-        private static string allEventsUrl = "https://clashfinder.com/data/events/events.json";
-
-        public static async Task<List<Event>> GetEventsFromClashFinders(string festivalName)
+        public async Task<List<Event>> GetEventsFromClashFinders(string festivalName)
         {
-            var linupDataUrlForFestival = lineupDataUrl(festivalName);
-            var httpClient = new HttpClient();
-            var response = await httpClient.GetAsync(linupDataUrlForFestival);
+            var lineupDataUrlForFestival = LineupDataUrl(festivalName);
+            var response = await _httpClient.GetAsync(lineupDataUrlForFestival);
             var contentStream = await response.Content.ReadAsStringAsync();
-            Root? rootData = JsonConvert.DeserializeObject<Root>(contentStream);
+            var rootData = JsonConvert.DeserializeObject<Root>(contentStream);
+            
             if (rootData == null)
             {
                 throw new Exception("Empty events json data!");
             }
 
-            var events = rootData.Locations.SelectMany(location => location.Events).ToList();
-            return events;
+            return rootData.Locations.SelectMany(location => location.Events).ToList();
         }
 
-        public static async Task<List<FestivalEvent>> GetAllEventsByYear(int year)
+        public async Task<List<FestivalEvent>> GetAllEventsByYear(int year)
         {
-            var httpClient = new HttpClient();
-            var response = await httpClient.GetAsync(allEventsUrl);
+            var response = await _httpClient.GetAsync(AllEventsUrl);
             var contentStream = await response.Content.ReadAsStringAsync();
 
             JObject json = JObject.Parse(contentStream);
@@ -84,7 +89,7 @@ namespace FestivalLineupBySpotify_API.Services
             public string GenerateUrl(string festivalName) 
             {
                 var highlightsAsParameter = this.Highlights.Select(highlight => highlight.ToString());
-                var url = $"{lineupUrl(festivalName)}/?{string.Join('&', highlightsAsParameter)}";
+                var url = $"{LineupUrl(festivalName)}/?{string.Join('&', highlightsAsParameter)}";
                 return url;
             }
 

@@ -6,11 +6,7 @@
       "launchBrowser": true,
       "launchUrl": "swagger",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "CLIENT_ID": "",
-        "REDIRECT_URI": "http://localhost:44331/Login/Callback",
-        "AUTH_USERNAME": "",
-        "AUTH_PUBLIC_KEY": ""
+        "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
     "https": {
@@ -19,12 +15,14 @@
       "launchBrowser": true,
       "launchUrl": "swagger",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "CLIENT_ID": "",
-        "REDIRECT_URI": "http://localhost:44331/Login/Callback",
-        "AUTH_USERNAME": "",
-        "AUTH_PUBLIC_KEY": ""
+        "ASPNETCORE_ENVIRONMENT": "Development"
       }
     }
+  },
+  "Cors": {
+    "AllowedOrigins": [
+      "http://localhost:5173",
+      "http://localhost:3000"
+    ]
   }
 }
