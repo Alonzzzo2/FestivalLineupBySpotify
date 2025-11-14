@@ -17,9 +17,21 @@ namespace FestivalLineupBySpotify_API.Controllers
         {
             _spotifyService = spotifyService;
         }
-        
+
+        [HttpGet("profile")]
+        public IActionResult GetProfile()
+        {
+            // Check if the user has a valid Spotify token cookie
+            if (Request.Cookies.TryGetValue("AccessToken", out var token) && !string.IsNullOrEmpty(token))
+            {
+                return Ok(new { authenticated = true });
+            }
+            return Unauthorized();
+        }
+
+
         [HttpGet]
-        [Route("festival/{festivalName}/{forceReloadData}")]
+        [Route("festival/{festivalName}/{forceReloadData?}")]
         public async Task<ClashFindersFavoritesResult> GenerateFavoritesForFestival(string festivalName, bool forceReloadData = false)
         {
             var result = await _spotifyService.GenerateClashFindersFavoritesResult(Request, festivalName, forceReloadData);
