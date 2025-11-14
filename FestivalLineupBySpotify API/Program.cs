@@ -67,6 +67,35 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Log all configuration at startup
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+logger.LogInformation("=== FESTIVAL LINEUP BY SPOTIFY - STARTUP CONFIGURATION ===");
+logger.LogInformation("Environment: {Environment}", app.Environment.EnvironmentName);
+logger.LogInformation("Port: {Port}", portValue ?? "Default");
+
+var spotifySettings = builder.Configuration.GetSection("Spotify").Get<SpotifySettings>();
+logger.LogInformation("--- SPOTIFY SETTINGS ---");
+logger.LogInformation("ClientId: {ClientId}", string.IsNullOrEmpty(spotifySettings?.ClientId) ? "NOT SET" : "***SET***");
+logger.LogInformation("RedirectUri: {RedirectUri}", spotifySettings?.RedirectUri ?? "NOT SET");
+
+var clashFindersSettings = builder.Configuration.GetSection("ClashFinders").Get<ClashFindersSettings>();
+logger.LogInformation("--- CLASHFINDERS SETTINGS ---");
+logger.LogInformation("AuthUsername: {AuthUsername}", string.IsNullOrEmpty(clashFindersSettings?.AuthUsername) ? "NOT SET" : "***SET***");
+logger.LogInformation("AuthPublicKey: {AuthPublicKey}", string.IsNullOrEmpty(clashFindersSettings?.AuthPublicKey) ? "NOT SET" : "***SET***");
+
+logger.LogInformation("--- CORS SETTINGS ---");
+if (corsSettings?.AllowedOrigins?.Length > 0)
+{
+    logger.LogInformation("AllowedOrigins: {AllowedOrigins}", string.Join(", ", corsSettings.AllowedOrigins));
+}
+else
+{
+    logger.LogWarning("AllowedOrigins: EMPTY - CORS will not allow any origins!");
+}
+
+logger.LogInformation("=== END STARTUP CONFIGURATION ===");
+
 app.UseCors("AllowFrontend");
 app.UseSession();
 
