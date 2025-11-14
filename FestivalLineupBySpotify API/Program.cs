@@ -28,15 +28,9 @@ builder.Services.AddDataProtection()
     .SetApplicationName("FestivalLineupBySpotify")
     .PersistKeysToFileSystem(new DirectoryInfo("/tmp/dataprotection-keys"));
 
-builder.Services.AddSession(options =>
-{
-    options.IdleTimeout = TimeSpan.FromMinutes(20);
-    options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;
-    options.Cookie.SameSite = SameSiteMode.Lax;
-});
-
+// Use in-memory cache for simple scenarios (no distributed state needed with state parameter)
 builder.Services.AddDistributedMemoryCache();
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -44,11 +38,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ISpotifyApiService, SpotifyApiService>();
 builder.Services.AddScoped<ISpotifyService, SpotifyService>();
 builder.Services.AddScoped<ClashFindersService>();
-builder.Services.AddHttpClient<ClashFindersService>(client =>
-{
-    client.BaseAddress = new Uri("https://clashfinder.com");
-    client.Timeout = TimeSpan.FromSeconds(30);
-});
+builder.Services.AddHttpClient();
 
 // Add CORS using configuration
 var corsSettings = builder.Configuration.GetSection("Cors").Get<CorsSettings>();
@@ -67,37 +57,7 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
-
-// Log all configuration at startup
-var logger = app.Services.GetRequiredService<ILogger<Program>>();
-logger.LogInformation("=== FESTIVAL LINEUP BY SPOTIFY - STARTUP CONFIGURATION ===");
-logger.LogInformation("Environment: {Environment}", app.Environment.EnvironmentName);
-logger.LogInformation("Port: {Port}", portValue ?? "Default");
-
-var spotifySettings = builder.Configuration.GetSection("Spotify").Get<SpotifySettings>();
-logger.LogInformation("--- SPOTIFY SETTINGS ---");
-logger.LogInformation("ClientId: {ClientId}", string.IsNullOrEmpty(spotifySettings?.ClientId) ? "NOT SET" : "***SET***");
-logger.LogInformation("RedirectUri: {RedirectUri}", spotifySettings?.RedirectUri ?? "NOT SET");
-
-var clashFindersSettings = builder.Configuration.GetSection("ClashFinders").Get<ClashFindersSettings>();
-logger.LogInformation("--- CLASHFINDERS SETTINGS ---");
-logger.LogInformation("AuthUsername: {AuthUsername}", string.IsNullOrEmpty(clashFindersSettings?.AuthUsername) ? "NOT SET" : "***SET***");
-logger.LogInformation("AuthPublicKey: {AuthPublicKey}", string.IsNullOrEmpty(clashFindersSettings?.AuthPublicKey) ? "NOT SET" : "***SET***");
-
-logger.LogInformation("--- CORS SETTINGS ---");
-if (corsSettings?.AllowedOrigins?.Length > 0)
-{
-    logger.LogInformation("AllowedOrigins: {AllowedOrigins}", string.Join(", ", corsSettings.AllowedOrigins));
-}
-else
-{
-    logger.LogWarning("AllowedOrigins: EMPTY - CORS will not allow any origins!");
-}
-
-logger.LogInformation("=== END STARTUP CONFIGURATION ===");
-
 app.UseCors("AllowFrontend");
-app.UseSession();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

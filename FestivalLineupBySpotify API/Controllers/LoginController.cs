@@ -26,9 +26,11 @@ namespace FestivalLineupBySpotify_API.Controllers
         public string Login()
         {
             var generatedCode = PKCEUtil.GenerateCodes();            
-            // Store verifier in session instead of cookies to support cross-domain scenarios
-            HttpContext.Session.SetString("SpotifyCodeVerifier", generatedCode.verifier);
             var challenge = generatedCode.challenge;
+            
+            // Encode verifier in state parameter (will be returned by Spotify)
+            var state = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(generatedCode.verifier));
+            
             var loginRequest = new LoginRequest(
               _spotifyApiService.RedirectUri,
               _spotifyApiService.ClientId,
@@ -37,7 +39,8 @@ namespace FestivalLineupBySpotify_API.Controllers
             {
                 CodeChallengeMethod = "S256",
                 CodeChallenge = challenge,
-                Scope = new[] { Scopes.PlaylistReadPrivate, Scopes.PlaylistReadCollaborative, Scopes.UserLibraryRead,  }
+                Scope = new[] { Scopes.PlaylistReadPrivate, Scopes.PlaylistReadCollaborative, Scopes.UserLibraryRead,  },
+                State = state
             };
             var uri = loginRequest.ToUri();
             //The client should call this, after a successful login, the Callback endpoint will be called in order to create an access token
@@ -48,21 +51,28 @@ namespace FestivalLineupBySpotify_API.Controllers
         public IActionResult Logout()
         {
             Response.Cookies.Delete("AccessToken");
-            HttpContext.Session.Remove("SpotifyCodeVerifier");
             return Ok();
         }
 
 
         [Route("[action]")]
         [HttpGet]
-        public async Task<IActionResult> Callback(string code)
+        public async Task<IActionResult> Callback(string code, string state)
         {
-            // Retrieve verifier from session
-            var verifier = HttpContext.Session.GetString("SpotifyCodeVerifier");
-            
-            if (string.IsNullOrEmpty(verifier))
+            // Decode verifier from state parameter
+            if (string.IsNullOrEmpty(state))
             {
-                return BadRequest("PKCE verifier not found in session. Please start authentication again.");
+                return BadRequest("State parameter missing. Please start authentication again.");
+            }
+
+            string verifier;
+            try
+            {
+                verifier = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(state));
+            }
+            catch
+            {
+                return BadRequest("Invalid state parameter. Please start authentication again.");
             }
 
             var initialResponse = await new OAuthClient().RequestToken(
@@ -70,9 +80,6 @@ namespace FestivalLineupBySpotify_API.Controllers
             );
 
             Response.Cookies.Append("AccessToken", initialResponse.AccessToken);
-            
-            // Clear the verifier after use
-            HttpContext.Session.Remove("SpotifyCodeVerifier");
             
             var frontendUrl = _configuration["FrontendUrl"]!;
             
