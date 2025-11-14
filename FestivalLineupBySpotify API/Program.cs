@@ -1,7 +1,5 @@
-using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Http;
 using FestivalLineupBySpotify_API.Services;
-using SpotifyAPI.Web;
+using Microsoft.AspNetCore.DataProtection;
 using Spotify_Alonzzo_API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,7 +17,19 @@ if (!string.IsNullOrEmpty(portValue) && int.TryParse(portValue, out var port))
 
 // Add services to the container.
 
-builder.Services.AddSession();
+// Configure Data Protection with persistent key storage
+builder.Services.AddDataProtection()
+    .SetApplicationName("FestivalLineupBySpotify")
+    .PersistKeysToFileSystem(new DirectoryInfo("/tmp/dataprotection-keys"));
+
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(20);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+});
+
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
