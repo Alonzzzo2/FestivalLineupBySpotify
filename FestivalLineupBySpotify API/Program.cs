@@ -44,7 +44,11 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ISpotifyApiService, SpotifyApiService>();
 builder.Services.AddScoped<ISpotifyService, SpotifyService>();
 builder.Services.AddScoped<ClashFindersService>();
-builder.Services.AddHttpClient();
+builder.Services.AddHttpClient<ClashFindersService>(client =>
+{
+    client.BaseAddress = new Uri("https://clashfinder.com");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
 
 // Add CORS using configuration
 var corsSettings = builder.Configuration.GetSection("Cors").Get<CorsSettings>();

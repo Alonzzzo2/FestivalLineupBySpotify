@@ -9,7 +9,7 @@ namespace FestivalLineupBySpotify_API.Services
     public class ClashFindersService
     {
         private const string ClashFindersUrl = "https://clashfinder.com";
-        private const string AllEventsUrl = "https://clashfinder.com/data/events/events.json";
+        private const string AllEventsUrl = "/data/events/events.json";
         
         private readonly string _authUsername;
         private readonly string _authPublicKey;
@@ -26,7 +26,7 @@ namespace FestivalLineupBySpotify_API.Services
 
         private string LineupDataUrl(string eventName)
         {
-            var url = $"{ClashFindersUrl}/data/event/{eventName}.json";
+            var url = $"/data/event/{eventName}.json";
             if (!string.IsNullOrEmpty(_authUsername) && !string.IsNullOrEmpty(_authPublicKey))
             {
                 url += $"?authUsername={System.Uri.EscapeDataString(_authUsername)}&authPublicKey={System.Uri.EscapeDataString(_authPublicKey)}";
