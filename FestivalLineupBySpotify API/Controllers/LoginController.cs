@@ -11,6 +11,13 @@ namespace FestivalLineupBySpotify_API.Controllers
     [ApiController]
     public class LoginController : ControllerBase
     {
+        private readonly IConfiguration _configuration;
+
+        public LoginController(IConfiguration configuration)
+        {
+            _configuration = configuration;
+        }
+
         [Route("[action]")]
         [HttpGet]
         public string Login()
@@ -51,9 +58,10 @@ namespace FestivalLineupBySpotify_API.Controllers
             );
 
             Response.Cookies.Append("AccessToken", initialResponse.AccessToken);
-            //return initialResponse.AccessToken;
-            // Todo - Also important for later: response.RefreshToken
-            return Redirect("http://localhost:5173/");
+            
+            var frontendUrl = _configuration["FrontendUrl"]!;
+            
+            return Redirect(frontendUrl);
         }
 
         [Route("[action]")]
