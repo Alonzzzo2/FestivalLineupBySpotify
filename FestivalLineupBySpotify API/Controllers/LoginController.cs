@@ -33,10 +33,17 @@ namespace FestivalLineupBySpotify_API.Controllers
             return uri.ToString(); 
         }
 
+        [HttpPost("Logout")]
+        public IActionResult Logout()
+        {
+            Response.Cookies.Delete("AccessToken");
+            return Ok();
+        }
+
 
         [Route("[action]")]
         [HttpGet]
-        public async Task<string> Callback(string code)
+        public async Task<IActionResult> Callback(string code)
         {
             var verifier = Request.Cookies["Verifier"];
             var initialResponse = await new OAuthClient().RequestToken(
@@ -44,8 +51,9 @@ namespace FestivalLineupBySpotify_API.Controllers
             );
 
             Response.Cookies.Append("AccessToken", initialResponse.AccessToken);
-            return initialResponse.AccessToken;
+            //return initialResponse.AccessToken;
             // Todo - Also important for later: response.RefreshToken
+            return Redirect("http://localhost:5173/");
         }
 
         [Route("[action]")]
