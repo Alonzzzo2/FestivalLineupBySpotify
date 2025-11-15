@@ -31,6 +31,14 @@ builder.Services.AddDataProtection()
 // Use in-memory cache for simple scenarios (no distributed state needed with state parameter)
 builder.Services.AddDistributedMemoryCache();
 
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(20);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+});
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -58,6 +66,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 app.UseCors("AllowFrontend");
+app.UseSession();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
