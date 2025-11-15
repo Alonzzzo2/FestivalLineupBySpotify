@@ -79,7 +79,15 @@ namespace FestivalLineupBySpotify_API.Controllers
               new PKCETokenRequest(_spotifyApiService.ClientId, code, _spotifyApiService.RedirectUri, verifier)
             );
 
-            Response.Cookies.Append("AccessToken", initialResponse.AccessToken);
+            // Set cookie with appropriate SameSite policy for cross-origin requests
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true, // HTTPS only in production
+                SameSite = SameSiteMode.None, // Allow cross-origin (requires Secure=true)
+                Expires = DateTimeOffset.UtcNow.AddHours(1)
+            };
+            Response.Cookies.Append("AccessToken", initialResponse.AccessToken, cookieOptions);
             
             var frontendUrl = _configuration["FrontendUrl"]!;
             
@@ -90,7 +98,14 @@ namespace FestivalLineupBySpotify_API.Controllers
         [HttpGet]
         public string DebugSetAccessToken(string accessToken)
         {
-            Response.Cookies.Append("AccessToken", accessToken);
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None,
+                Expires = DateTimeOffset.UtcNow.AddHours(1)
+            };
+            Response.Cookies.Append("AccessToken", accessToken, cookieOptions);
             return accessToken;            
         }
 
