@@ -80,7 +80,7 @@ namespace Spotify_Alonzzo_API.Clients
                         var title = titleNode.InnerText?.Trim() ?? string.Empty;
                         var internalName = nameNode.InnerText?.Trim() ?? string.Empty;
                         var dateText = dateNode.InnerText?.Trim() ?? string.Empty;
-                        var dateMatch = DateOnlyRegex().Match(dateText);
+                        var dateMatch = System.Text.RegularExpressions.Regex.Match(dateText, @"^\d{4}-\d{1,2}-\d{1,2}");
                         dateText = dateMatch.Success ? dateMatch.Value : dateText.Split('\n')[0]?.Trim() ?? string.Empty;
 
                         return DateTime.TryParse(dateText, out var startDate)
@@ -102,10 +102,6 @@ namespace Spotify_Alonzzo_API.Clients
                 .Cast<FestivalListItem>()
                 .ToList();
         }
-
-        // SYSLIB1045: Use GeneratedRegexAttribute for compile-time regex
-        [System.Text.RegularExpressions.GeneratedRegex(@"^\d{4}-\d{1,2}-\d{1,2}")]
-        private static partial System.Text.RegularExpressions.Regex DateOnlyRegex();
 
         private static PrintAdvisoryQuality ParsePrintAdvisory(string text) =>
             string.IsNullOrEmpty(text) ? PrintAdvisoryQuality.Unknown :
