@@ -1,8 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using System.Text.RegularExpressions;
+﻿using FestivalLineupBySpotify_API.DTO;
+using FestivalLineupBySpotify_API.Models;
 using FestivalLineupBySpotify_API.Services;
-using Microsoft.AspNetCore.Diagnostics;
-using SpotifyAPI.Web;
+using Microsoft.AspNetCore.Mvc;
 using Spotify_Alonzzo_API.Services;
 
 namespace FestivalLineupBySpotify_API.Controllers
@@ -26,32 +25,46 @@ namespace FestivalLineupBySpotify_API.Controllers
             {
                 return Ok(new { authenticated = true });
             }
-            return Unauthorized();
+            return Unauthorized(); 
         }
 
 
         [HttpGet]
-        [Route("festival/{festivalName}/{forceReloadData?}")]
-        public async Task<ClashFindersFavoritesResult> GenerateFavoritesForFestival(string festivalName, bool forceReloadData = false)
+        [Route("festival/{internalFestivalName}/{forceReloadData?}")]
+        public async Task<ClashFindersFavoritesResponse> GenerateFavoritesForFestival(string internalFestivalName, bool forceReloadData = false)
         {
-            var result = await _spotifyService.GenerateClashFindersFavoritesResult(Request, festivalName, forceReloadData);
-            return result;
+            var result = await _spotifyService.GenerateClashFindersFavoritesResult(Request, internalFestivalName, forceReloadData);
+            return MapToResponse(result);
         }
 
-        [HttpGet]
-        [Route("festival/{festivalName}/popular")]
-        public async Task<ClashFindersFavoritesResult> GeneratePopularForFestival(string festivalName, bool forceReloadData = false)
-        {
-            var result = await _spotifyService.GenerateClashFindersFavoritesResult(Request, festivalName, forceReloadData);
-            return result;
-        }
 
         [HttpGet]
         [Route("festivals/{festivalsYear}")]
-        public async Task<List<ClashFindersFavoritesResult>> GenerateForFestivalsYear(int festivalsYear)
+        public async Task<List<ClashFindersFavoritesResponse>> GenerateForFestivalsYear(int festivalsYear)
         {
             var results = await _spotifyService.GenerateClashFindersFavoritesResult(Request, festivalsYear);
-            return results;
+            return results.Select(MapToResponse).ToList();
+        }
+
+        [HttpGet("festivals/list/all")]
+        public async Task<List<FestivalListItemResponse>> GetAllFestivals()
+        {
+            return await _spotifyService.GetAllFestivals();
+        }
+
+        private static ClashFindersFavoritesResponse MapToResponse(ClashFindersFavoritesResult result)
+        {
+            var festivalResponse = result.Festival != null ? new FestivalResponse
+            {
+                Name = result.Festival.Name,
+                Id = result.Festival.Id,
+                Url = result.Festival.Url,
+                PrintAdvisory = result.Festival.PrintAdvisory,
+                Modified = result.Festival.Modified,
+                StartDateUnix = result.Festival.StartDateUnix
+            } : null;
+
+            return new ClashFindersFavoritesResponse(result.Url, result.TotalPossibleLikedTracks, result.Rank, festivalResponse);
         }
     }    
 }

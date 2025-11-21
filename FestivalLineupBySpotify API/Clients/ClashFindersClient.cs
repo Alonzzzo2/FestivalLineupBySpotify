@@ -1,0 +1,141 @@
+﻿using Newtonsoft.Json;
+using FestivalLineupBySpotify_API.Configuration;
+using FestivalLineupBySpotify_API.Models;
+using Microsoft.Extensions.Options;
+using Newtonsoft.Json.Linq;
+using HtmlAgilityPack;
+using Spotify_Alonzzo_API.Clients.Models;
+
+namespace Spotify_Alonzzo_API.Clients
+{
+    public class ClashFindersClient
+    {
+        private const string ClashFindersUrl = "https://clashfinder.com";
+        private const string AllEventsUrl = "/data/events/events.json";
+        
+        private readonly string _authUsername;
+        private readonly string _authPublicKey;
+        private readonly HttpClient _httpClient;
+
+        public ClashFindersClient(IOptions<ClashFindersSettings> options, HttpClient httpClient)
+        {
+            _httpClient = httpClient;
+            _authUsername = options.Value.AuthUsername;
+            _authPublicKey = options.Value.AuthPublicKey;
+        }
+
+        private static string LineupUrl(string eventName) => $"{ClashFindersUrl}/s/{eventName}";
+
+        private string LineupDataUrl(string eventName) =>
+            $"/data/event/{eventName}.json?authUsername={Uri.EscapeDataString(_authUsername)}&authPublicKey={Uri.EscapeDataString(_authPublicKey)}";
+
+        public async Task<Festival> GetFestival(string internalFestivalName) =>
+            JsonConvert.DeserializeObject<Festival>(await _httpClient.GetStringAsync(LineupDataUrl(internalFestivalName)))
+                ?? throw new InvalidOperationException("Empty events json data!");
+
+        public async Task<List<Festival>> GetAllFestivalsByYear(int year)
+        {
+            var json = JObject.Parse(await _httpClient.GetStringAsync(AllEventsUrl));
+            return json.Properties()
+                .Select(p => new Festival
+                {
+                    Modified = p.Value["modified"]?.ToString() ?? string.Empty,
+                    Name = p.Value["name"]?.ToString() ?? string.Empty,
+                    Copyright = p.Value["copyright"]?.ToString() ?? string.Empty,
+                    Id = p.Value["id"]?.ToString() ?? string.Empty,
+                    Url = p.Value["url"]?.ToString() ?? string.Empty,
+                    PrintAdvisory = (int)(p.Value["printAdvisory"] ?? 0),
+                    Timezone = p.Value["timezone"]?.ToString() ?? string.Empty,
+                    TzOffset = (int)(p.Value["tzOffset"] ?? 0),
+                    TzNote = p.Value["tzNote"]?.ToString() ?? string.Empty,
+                    Locations = p.Value["locations"]?.ToObject<List<Location>>() ?? new List<Location>()
+                })
+                .Where(f => f.StartDate.Year == year)
+                .ToList();
+        }
+
+        public async Task<List<FestivalListItem>> GetAllFestivals()
+        {
+            var doc = new HtmlDocument();
+            doc.LoadHtml(await _httpClient.GetStringAsync("/list/?show=all"));
+
+            var listItems = doc.DocumentNode.SelectNodes("//tbody[@class='cfListItem']") ?? new HtmlNodeCollection(null);
+
+            if (listItems.Count == 0)
+                return new List<FestivalListItem>();
+
+            return listItems
+                .Select(item =>
+                {
+                    try
+                    {
+                        var titleNode = item.SelectSingleNode(".//a[@class='cfTitle']");
+                        var nameNode = item.SelectSingleNode(".//a[@class='cfName']");
+                        var dateNode = item.SelectSingleNode(".//td[@class='cfStartDate']");
+                        var printAdvNode = item.SelectSingleNode(".//td[@class='cfPrintAdv']");
+
+                        if (titleNode == null || nameNode == null || dateNode == null)
+                            return null;
+
+                        var title = titleNode.InnerText?.Trim() ?? string.Empty;
+                        var internalName = nameNode.InnerText?.Trim() ?? string.Empty;
+                        var dateText = dateNode.InnerText?.Trim() ?? string.Empty;
+                        var dateMatch = DateOnlyRegex().Match(dateText);
+                        dateText = dateMatch.Success ? dateMatch.Value : dateText.Split('\n')[0]?.Trim() ?? string.Empty;
+
+                        return DateTime.TryParse(dateText, out var startDate)
+                            ? new FestivalListItem
+                            {
+                                Title = title,
+                                InternalName = internalName,
+                                StartDate = startDate,
+                                PrintAdvisory = ParsePrintAdvisory(printAdvNode?.InnerText?.Trim() ?? string.Empty)
+                            }
+                            : null;
+                    }
+                    catch
+                    {
+                        return null;
+                    }
+                })
+                .Where(f => f != null)
+                .Cast<FestivalListItem>()
+                .ToList();
+        }
+
+        // SYSLIB1045: Use GeneratedRegexAttribute for compile-time regex
+        [System.Text.RegularExpressions.GeneratedRegex(@"^\d{4}-\d{1,2}-\d{1,2}")]
+        private static partial System.Text.RegularExpressions.Regex DateOnlyRegex();
+
+        private static PrintAdvisoryQuality ParsePrintAdvisory(string text) =>
+            string.IsNullOrEmpty(text) ? PrintAdvisoryQuality.Unknown :
+            int.TryParse(text[0].ToString(), out var quality) && quality >= 1 && quality <= 6
+                ? (PrintAdvisoryQuality)quality
+                : PrintAdvisoryQuality.Unknown;
+
+        public class Highlight
+        {
+            public int Index { get; set; }
+            public List<string> ArtistsShortEventNames { get; set; } = [];
+
+            public override string ToString() => $"hl{Index}={string.Join(',', ArtistsShortEventNames)}";
+        }
+
+        public class HighlightsCollection
+        {
+            public List<Highlight> Highlights { get; set; } = 
+                [new() { Index = 1 }, new() { Index = 2 }, new() { Index = 3 }, new() { Index = 4 }];
+
+            public Highlight this[int index] => Highlights[index];
+
+            public string GenerateUrl(string festivalName) =>
+                $"{LineupUrl(festivalName)}/?{string.Join('&', Highlights.Select(h => h.ToString()))}";
+        }
+
+        public class ClashFindersFavoritesURL
+        {
+            public string Url { get; set; } = string.Empty;
+            public int Score { get; set; }
+        }
+    }
+}

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Spotify_Alonzzo_API.Services;
 using FestivalLineupBySpotify_API.Configuration;
 using FestivalLineupBySpotify_API.Services;
+using Spotify_Alonzzo_API.Clients;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,9 +44,9 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<ISpotifyApiService, SpotifyApiService>();
+builder.Services.AddScoped<ISpotifyClient, SpotifyClient>();
 builder.Services.AddScoped<ISpotifyService, SpotifyService>();
-builder.Services.AddHttpClient<ClashFindersService>()
+builder.Services.AddHttpClient<ClashFindersClient>()
     .ConfigureHttpClient(client => client.BaseAddress = new Uri("https://clashfinder.com"));
 
 // Add CORS using configuration

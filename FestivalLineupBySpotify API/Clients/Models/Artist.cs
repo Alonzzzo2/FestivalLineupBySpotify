@@ -1,4 +1,4 @@
-﻿namespace FestivalLineupBySpotify_API.DTO
+﻿namespace Spotify_Alonzzo_API.Clients.Models
 {
     public class Artist
     {

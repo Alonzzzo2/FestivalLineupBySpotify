@@ -1,19 +1,11 @@
 ﻿using FestivalLineupBySpotify_API.Configuration;
-using FestivalLineupBySpotify_API.DTO;
 using Microsoft.Extensions.Options;
+using Spotify_Alonzzo_API.Clients.Models;
 using SpotifyAPI.Web;
 
-namespace FestivalLineupBySpotify_API.Services
+namespace Spotify_Alonzzo_API.Clients
 {
-    public interface ISpotifyApiService
-    {
-        string ClientId { get; }
-        Uri RedirectUri { get; }
-        SpotifyClient CreateSpotifyClient(IRequestCookieCollection cookies);
-        Task<List<Artist>> GetFavoriteArtistsFromSpotify(SpotifyClient spotifyClient);
-    }
-
-    public class SpotifyApiService : ISpotifyApiService
+    public class SpotifyClient : ISpotifyClient
     {
         private const string AccessTokenCookeName = "AccessToken";
         private readonly string _clientId;
@@ -22,14 +14,14 @@ namespace FestivalLineupBySpotify_API.Services
         public string ClientId => _clientId;
         public Uri RedirectUri => _redirectUri;
 
-        public SpotifyApiService(IOptions<SpotifySettings> options)
+        public SpotifyClient(IOptions<SpotifySettings> options)
         {
             var settings = options.Value;
             _clientId = settings.ClientId ?? throw new ArgumentNullException(nameof(settings.ClientId));
             _redirectUri = new Uri(settings.RedirectUri ?? throw new ArgumentNullException(nameof(settings.RedirectUri)));
         }
 
-        public SpotifyClient CreateSpotifyClient(IRequestCookieCollection cookies)
+        public SpotifyAPI.Web.SpotifyClient CreateSpotifyClient(IRequestCookieCollection cookies)
         {
             if (!cookies.TryGetValue(AccessTokenCookeName, out var accessToken))
             {
@@ -39,10 +31,10 @@ namespace FestivalLineupBySpotify_API.Services
             {
                 throw new Exception("Null access token!");
             }
-            return new SpotifyClient(accessToken);
+            return new SpotifyAPI.Web.SpotifyClient(accessToken);
         }
 
-        public async Task<List<Artist>> GetFavoriteArtistsFromSpotify(SpotifyClient spotifyClient)
+        public async Task<List<Artist>> GetFavoriteArtistsFromSpotify(SpotifyAPI.Web.SpotifyClient spotifyClient)
         {
             var likedTracksPage = await spotifyClient.Library.GetTracks(new LibraryTracksRequest() { Limit = 50 });
             var likedTracks = await spotifyClient.PaginateAll(likedTracksPage);

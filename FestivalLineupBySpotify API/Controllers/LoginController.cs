@@ -1,10 +1,5 @@
-﻿using Microsoft.AspNetCore.DataProtection.KeyManagement;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+﻿using Microsoft.AspNetCore.Mvc;
 using SpotifyAPI.Web;
-using FestivalLineupBySpotify_API.Services;
 
 namespace FestivalLineupBySpotify_API.Controllers
 {
@@ -13,12 +8,12 @@ namespace FestivalLineupBySpotify_API.Controllers
     public class LoginController : ControllerBase
     {
         private readonly IConfiguration _configuration;
-        private readonly ISpotifyApiService _spotifyApiService;
+        private readonly Spotify_Alonzzo_API.Clients.ISpotifyClient _spotifyClient;
 
-        public LoginController(IConfiguration configuration, ISpotifyApiService spotifyApiService)
+        public LoginController(IConfiguration configuration, Spotify_Alonzzo_API.Clients.ISpotifyClient spotifyApiService)
         {
             _configuration = configuration;
-            _spotifyApiService = spotifyApiService;
+            _spotifyClient = spotifyApiService;
         }
 
         [Route("[action]")]
@@ -32,8 +27,8 @@ namespace FestivalLineupBySpotify_API.Controllers
             var state = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(generatedCode.verifier));
             
             var loginRequest = new LoginRequest(
-              _spotifyApiService.RedirectUri,
-              _spotifyApiService.ClientId,
+              _spotifyClient.RedirectUri,
+              _spotifyClient.ClientId,
               LoginRequest.ResponseType.Code
             )
             {
@@ -76,7 +71,7 @@ namespace FestivalLineupBySpotify_API.Controllers
             }
 
             var initialResponse = await new OAuthClient().RequestToken(
-              new PKCETokenRequest(_spotifyApiService.ClientId, code, _spotifyApiService.RedirectUri, verifier)
+              new PKCETokenRequest(_spotifyClient.ClientId, code, _spotifyClient.RedirectUri, verifier)
             );
 
             // Set cookie with appropriate SameSite policy for cross-origin requests
