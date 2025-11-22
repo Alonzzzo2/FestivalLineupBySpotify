@@ -1,9 +1,9 @@
-using Microsoft.AspNetCore.DataProtection;
-using Spotify_Alonzzo_API.Services;
 using FestivalLineupBySpotify_API.Configuration;
 using FestivalLineupBySpotify_API.Services;
+using Microsoft.AspNetCore.DataProtection;
 using Spotify_Alonzzo_API.Clients.ClashFinders;
-using Spotify_Alonzzo_API.Clients.Sporify;
+using Spotify_Alonzzo_API.Clients.Spotify;
+using Spotify_Alonzzo_API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -49,6 +49,7 @@ builder.Services.AddScoped<ISpotifyClient, SpotifyClient>();
 builder.Services.AddScoped<ISpotifyService, SpotifyService>();
 builder.Services.AddScoped<IClashFindersService, ClashFindersService>();
 builder.Services.AddScoped<IFestivalMatchingService, FestivalMatchingService>();
+builder.Services.AddScoped<SpotifyAPI.Web.OAuthClient>();
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddHttpClient<ClashFindersClient>()
     .ConfigureHttpClient(client => client.BaseAddress = new Uri("https://clashfinder.com"));

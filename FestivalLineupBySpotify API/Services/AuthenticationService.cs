@@ -8,6 +8,7 @@ namespace FestivalLineupBySpotify_API.Services
     public class AuthenticationService : IAuthenticationService
     {
         private readonly IOptions<SpotifySettings> _spotifySettings;
+        private readonly OAuthClient _oauthClient;
         private static readonly string[] OAuthScopes = 
         {
             Scopes.PlaylistReadPrivate,
@@ -15,9 +16,10 @@ namespace FestivalLineupBySpotify_API.Services
             Scopes.UserLibraryRead
         };
 
-        public AuthenticationService(IOptions<SpotifySettings> spotifySettings)
+        public AuthenticationService(IOptions<SpotifySettings> spotifySettings, OAuthClient oauthClient)
         {
             _spotifySettings = spotifySettings;
+            _oauthClient = oauthClient;
         }
 
         public string GenerateSpotifyLoginUrl()
@@ -61,7 +63,7 @@ namespace FestivalLineupBySpotify_API.Services
             }
 
             var settings = _spotifySettings.Value;
-            var tokenResponse = await new OAuthClient().RequestToken(
+            var tokenResponse = await _oauthClient.RequestToken(
                 new PKCETokenRequest(
                     settings.ClientId,
                     code,
@@ -72,10 +74,9 @@ namespace FestivalLineupBySpotify_API.Services
             return tokenResponse.AccessToken;
         }
 
-        public bool HasValidAccessToken(IRequestCookieCollection cookies)
+        public bool IsTokenValid(string token)
         {
-            return cookies.TryGetValue(CookieNames.SpotifyAccessToken, out var token) 
-                && !string.IsNullOrEmpty(token);
+            return !string.IsNullOrWhiteSpace(token) && token.Length > 10;
         }
     }
 }

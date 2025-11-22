@@ -23,7 +23,7 @@ namespace FestivalLineupBySpotify_API.Controllers
         /// <param name="forceReloadData">Force reload user's favorite artists from Spotify (bypass cache)</param>
         /// <returns>List of festivals with matched artists and rankings, sorted by rank (descending)</returns>
         [HttpGet("by-year/{year}")]
-        public async Task<List<ClashFindersFavoritesResponse>> GetMatchedFestivalsByYear(int year, [FromQuery] bool forceReloadData = false)
+        public async Task<List<ClashFindersLinkResponse>> GetMatchedFestivalsByYear(int year, [FromQuery] bool forceReloadData = false)
         {
             var results = await _festivalMatchingService.GetMatchedFestivalsByYear(year, forceReloadData);
             return results.Select(MapToResponse).ToList();
@@ -36,13 +36,13 @@ namespace FestivalLineupBySpotify_API.Controllers
         /// <param name="forceReloadData">Force reload user's favorite artists from Spotify (bypass cache)</param>
         /// <returns>ClashFinders link with matched artists and ranking</returns>
         [HttpGet("{internalFestivalName}")]
-        public async Task<ClashFindersFavoritesResponse> GetMatchedFestivalByName(string internalFestivalName, [FromQuery] bool forceReloadData = false)
+        public async Task<ClashFindersLinkResponse> GetMatchedFestivalByName(string internalFestivalName, [FromQuery] bool forceReloadData = false)
         {
             var result = await _festivalMatchingService.GetMatchedFestivalByName(internalFestivalName, forceReloadData);
             return MapToResponse(result);
         }
 
-        private static ClashFindersFavoritesResponse MapToResponse(ClashFindersLinkModel model)
+        private static ClashFindersLinkResponse MapToResponse(ClashFindersLinkModel model)
         {
             var festivalResponse = model.Festival != null ? new FestivalResponse
             {
@@ -54,7 +54,7 @@ namespace FestivalLineupBySpotify_API.Controllers
                 StartDateUnix = model.Festival.StartDateUnix
             } : null;
 
-            return new ClashFindersFavoritesResponse(model.Url, model.TotalPossibleLikedTracks, model.Rank, festivalResponse);
+            return new ClashFindersLinkResponse(model.Url, model.TotalPossibleLikedTracks, model.Rank, festivalResponse);
         }
     }
 }

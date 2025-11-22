@@ -1,6 +1,7 @@
 using FestivalLineupBySpotify_API.Constants;
 using FestivalLineupBySpotify_API.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
 
 namespace FestivalLineupBySpotify_API.Controllers
 {
@@ -11,14 +12,17 @@ namespace FestivalLineupBySpotify_API.Controllers
         private const string FrontendUrlConfigKey = "FrontendUrl";
         private readonly IAuthenticationService _authenticationService;
         private readonly IConfiguration _configuration;
+        private readonly IWebHostEnvironment _env;
         private static readonly TimeSpan TokenExpiration = TimeSpan.FromHours(1);
 
         public AuthenticationController(
             IAuthenticationService authenticationService,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IWebHostEnvironment env)
         {
             _authenticationService = authenticationService;
             _configuration = configuration;
+            _env = env;
         }
 
         /// <summary>
@@ -28,7 +32,8 @@ namespace FestivalLineupBySpotify_API.Controllers
         [HttpGet("profile")]
         public IActionResult GetProfile()
         {
-            if (_authenticationService.HasValidAccessToken(Request.Cookies))
+            if (Request.Cookies.TryGetValue(CookieNames.SpotifyAccessToken, out var token) 
+                && _authenticationService.IsTokenValid(token))
             {
                 return Ok(new { authenticated = true });
             }
@@ -84,13 +89,14 @@ namespace FestivalLineupBySpotify_API.Controllers
         /// Debug endpoint: Manually set the access token cookie
         /// WARNING: For development/testing only, should not be available in production
         /// </summary>
-        /// <param name="accessToken">The access token to set</param>
-        /// <returns>The access token that was set</returns>
         [HttpGet("debug/set-token")]
-        public string DebugSetAccessToken(string accessToken)
+        [Conditional("DEBUG")]
+        public void DebugSetAccessToken(string accessToken)
         {
+            if (!_env.IsDevelopment())
+                throw new InvalidOperationException("This endpoint is only available in development.");
+            
             SetAccessTokenCookie(accessToken);
-            return accessToken;
         }
 
         /// <summary>

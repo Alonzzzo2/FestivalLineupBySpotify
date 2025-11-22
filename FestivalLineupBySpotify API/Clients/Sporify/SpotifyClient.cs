@@ -1,10 +1,10 @@
 ﻿using FestivalLineupBySpotify_API.Configuration;
 using FestivalLineupBySpotify_API.Constants;
 using Microsoft.Extensions.Options;
-using Spotify_Alonzzo_API.Clients.Sporify.Models;
+using Spotify_Alonzzo_API.Clients.Spotify.Models;
 using SpotifyAPI.Web;
 
-namespace Spotify_Alonzzo_API.Clients.Sporify
+namespace Spotify_Alonzzo_API.Clients.Spotify
 {
     public class SpotifyClient : ISpotifyClient
     {

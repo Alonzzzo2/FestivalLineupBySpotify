@@ -20,10 +20,10 @@ namespace FestivalLineupBySpotify_API.Services
         Task<string> ExchangeCodeForAccessToken(string code, string state);
 
         /// <summary>
-        /// Check if valid access token exists in cookies
+        /// Validate if a token string is non-empty
         /// </summary>
-        /// <param name="cookies">Request cookies collection</param>
-        /// <returns>True if valid token exists, false otherwise</returns>
-        bool HasValidAccessToken(IRequestCookieCollection cookies);
+        /// <param name="token">The token string to validate</param>
+        /// <returns>True if the token is valid, false otherwise</returns>
+        bool IsTokenValid(string token);
     }
 }

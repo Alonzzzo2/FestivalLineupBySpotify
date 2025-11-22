@@ -1,6 +1,6 @@
 namespace Spotify_Alonzzo_API.Controllers.DTO
 {
-    public class ClashFindersFavoritesResponse
+    public class ClashFindersLinkResponse
     {
         public string Url { get; set; }
 
@@ -10,7 +10,7 @@ namespace Spotify_Alonzzo_API.Controllers.DTO
 
         public FestivalResponse Festival { get; set; }
 
-        public ClashFindersFavoritesResponse(string url, int totalPossibleLikedTracks, float rank, FestivalResponse festival)
+        public ClashFindersLinkResponse(string url, int totalPossibleLikedTracks, float rank, FestivalResponse festival)
         {
             Url = url;
             TotalPossibleLikedTracks = totalPossibleLikedTracks;

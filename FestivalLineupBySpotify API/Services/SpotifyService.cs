@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
-using Spotify_Alonzzo_API.Clients.Sporify;
-using Spotify_Alonzzo_API.Clients.Sporify.Models;
+using FestivalLineupBySpotify_API.Models;
+using Spotify_Alonzzo_API.Clients.Spotify;
 using Spotify_Alonzzo_API.Services;
 using System.Text;
 
@@ -18,7 +18,7 @@ namespace FestivalLineupBySpotify_API.Services
             _spotifyClient = spotifyApiService;
         }
 
-        public async Task<List<Artist>> GetFavoriteArtists(bool forceReloadData = false)
+        public async Task<List<ArtistInfo>> GetFavoriteArtists(bool forceReloadData = false)
         {
             var httpContext = _httpContextAccessor.HttpContext;
             if (httpContext == null)
@@ -36,7 +36,7 @@ namespace FestivalLineupBySpotify_API.Services
             return await GetFavoriteArtistsFromSpotify(httpContext);
         }
 
-        private List<Artist>? GetCachedFavoriteArtists(HttpContext httpContext)
+        private List<ArtistInfo>? GetCachedFavoriteArtists(HttpContext httpContext)
         {
             if (!httpContext.Session.TryGetValue(FavoriteArtistsCacheKey, out byte[]? dataBytes))
             {
@@ -44,21 +44,26 @@ namespace FestivalLineupBySpotify_API.Services
             }
 
             var data = Encoding.UTF8.GetString(dataBytes);
-            return JsonConvert.DeserializeObject<List<Artist>>(data) ?? new List<Artist>();
+            return JsonConvert.DeserializeObject<List<ArtistInfo>>(data) ?? new List<ArtistInfo>();
         }
 
-        private async Task<List<Artist>> GetFavoriteArtistsFromSpotify(HttpContext httpContext)
+        private async Task<List<ArtistInfo>> GetFavoriteArtistsFromSpotify(HttpContext httpContext)
         {
             var cookies = httpContext.Request.Cookies 
                 ?? throw new InvalidOperationException("No HTTP context available. Cannot access request cookies.");
             var spotifyClient = _spotifyClient.CreateSpotifyClient(cookies);
             var favoriteArtists = await _spotifyClient.GetFavoriteArtistsFromSpotify(spotifyClient);
             
-            CacheFavoriteArtists(httpContext, favoriteArtists);
-            return favoriteArtists;
+            // Convert client models to domain models
+            var artistInfoList = favoriteArtists
+                .Select(a => new ArtistInfo(a.Name, a.NumOfLikedTracks))
+                .ToList();
+            
+            CacheFavoriteArtists(httpContext, artistInfoList);
+            return artistInfoList;
         }
 
-        private void CacheFavoriteArtists(HttpContext httpContext, List<Artist> artists)
+        private void CacheFavoriteArtists(HttpContext httpContext, List<ArtistInfo> artists)
         {
             var serializedArtists = JsonConvert.SerializeObject(artists);
             httpContext.Session.SetString(FavoriteArtistsCacheKey, serializedArtists);

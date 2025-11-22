@@ -1,26 +1,24 @@
-using Newtonsoft.Json;
-using Spotify_Alonzzo_API.Clients.Sporify.Models;
-
 namespace FestivalLineupBySpotify_API.Models
 {
     public class ClashFindersLinkModel
     {
-        public string Url { get; set; }
+        public string Url { get; }
+        public int TotalPossibleLikedTracks { get; }
+        public FestivalInfo Festival { get; }
 
-        public int TotalPossibleLikedTracks { get; set; }
-
-        public Festival Festival { get; set; }
-
-        public ClashFindersLinkModel(string url, int totalPossibleLikesTracks, Festival festival)
+        public ClashFindersLinkModel(string url, int totalPossibleLikedTracks, FestivalInfo festival)
         {
-            Url = url;
-            TotalPossibleLikedTracks = totalPossibleLikesTracks;
-            Festival = festival;
+            Url = url ?? throw new ArgumentNullException(nameof(url));
+            TotalPossibleLikedTracks = totalPossibleLikedTracks;
+            Festival = festival ?? throw new ArgumentNullException(nameof(festival));
         }
 
-        public float Rank {get {
-            if (Festival == null) return 0;
-            return (float)TotalPossibleLikedTracks / Festival.GetNumActs();
-        }}
+        /// <summary>
+        /// Match ranking: ratio of user's liked tracks to total acts
+        /// Higher rank = more user's favorite artists performing
+        /// </summary>
+        public float Rank => Festival.TotalActs > 0 
+            ? (float)TotalPossibleLikedTracks / Festival.TotalActs 
+            : 0;
     }
 }

@@ -1,7 +1,7 @@
 using FestivalLineupBySpotify_API.Models;
 using Spotify_Alonzzo_API.Clients.ClashFinders;
 using Spotify_Alonzzo_API.Clients.ClashFinders.Models;
-using Spotify_Alonzzo_API.Clients.Sporify.Models;
+using Spotify_Alonzzo_API.Clients.Spotify.Models;
 
 namespace FestivalLineupBySpotify_API.Services
 {
@@ -22,7 +22,7 @@ namespace FestivalLineupBySpotify_API.Services
                 Title = f.Title,
                 InternalName = f.InternalName,
                 StartDate = f.StartDate,
-                PrintAdvisory = f.PrintAdvisory
+                PrintAdvisory = (int)f.PrintAdvisory
             }).ToList();
         }
 

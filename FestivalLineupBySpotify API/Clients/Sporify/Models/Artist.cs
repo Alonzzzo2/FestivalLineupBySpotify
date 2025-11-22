@@ -1,4 +1,4 @@
-﻿namespace Spotify_Alonzzo_API.Clients.Sporify.Models
+﻿namespace Spotify_Alonzzo_API.Clients.Spotify.Models
 {
     /// <summary>
     /// Artist model from Spotify API

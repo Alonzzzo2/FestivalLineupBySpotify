@@ -1,5 +1,5 @@
 using FestivalLineupBySpotify_API.Models;
-using Spotify_Alonzzo_API.Clients.Sporify.Models;
+using Spotify_Alonzzo_API.Clients.Spotify.Models;
 
 namespace FestivalLineupBySpotify_API.Services
 {

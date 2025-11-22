@@ -1,6 +1,5 @@
 using FestivalLineupBySpotify_API.Models;
-using Spotify_Alonzzo_API.Clients.ClashFinders;
-using Spotify_Alonzzo_API.Clients.Sporify.Models;
+using Spotify_Alonzzo_API.Clients.Spotify.Models;
 using Spotify_Alonzzo_API.Services;
 
 namespace FestivalLineupBySpotify_API.Services
@@ -37,7 +36,13 @@ namespace FestivalLineupBySpotify_API.Services
         {
             var favoriteArtists = await _spotifyService.GetFavoriteArtists(forceReloadArtistData);
 
-            var artistsWithEvents = GenerateArtistsWithEvents(favoriteArtists, festival.Locations.SelectMany(location => location.Events).ToList());
+            // Convert client Events to domain EventInfo
+            var festivalEventsInfo = festival.Locations
+                .SelectMany(location => location.Events)
+                .Select(e => new EventInfo(e.Name, e.Short))
+                .ToList();
+
+            var artistsWithEvents = GenerateArtistsWithEvents(favoriteArtists, festivalEventsInfo);
             
             // Organize artists by priority tiers
             var artistsByPriority = OrganizeArtistsByPriority(artistsWithEvents);
@@ -45,7 +50,18 @@ namespace FestivalLineupBySpotify_API.Services
             // Let ClashFindersService handle URL building
             var url = _clashFindersService.BuildHighlightUrl(festival.Id, artistsByPriority);
 
-            var result = new ClashFindersLinkModel(url, artistsWithEvents.Sum(a => a.NumOfLikedTracks), festival);
+            // Extract festival data to domain model
+            var festivalInfo = new FestivalInfo(
+                name: festival.Name,
+                id: festival.Id,
+                url: festival.Url,
+                printAdvisory: festival.PrintAdvisory,
+                modified: festival.Modified,
+                startDateUnix: festival.StartDateUnix,
+                totalActs: festival.GetNumActs()
+            );
+
+            var result = new ClashFindersLinkModel(url, artistsWithEvents.Sum(a => a.NumOfLikedTracks), festivalInfo);
             return result;
         }
 
@@ -71,21 +87,21 @@ namespace FestivalLineupBySpotify_API.Services
             return artistsByPriority;
         }
 
-        private List<ArtistWithEvents> GenerateArtistsWithEvents(List<Artist> artists, List<Event> allFestivalEvents)
+        private List<ArtistWithEvents> GenerateArtistsWithEvents(List<ArtistInfo> artists, List<EventInfo> allFestivalEvents)
         {
             // For each favorite artist, if they have a festival event, create a match result
             var artistsWithEvents = artists
                 .Select(artist =>
                 {
                     var artistNames = artist.Name.ToLower().Split(" ");
-                    var artistEvents = allFestivalEvents
+                    var matchedEvents = allFestivalEvents
                         .Where(festivalEvent => DoesEventBelongToArtist(festivalEvent, artistNames))
                         .ToList();
 
                     return new ArtistWithEvents(
                         artist.Name,
                         artist.NumOfLikedTracks,
-                        artistEvents
+                        matchedEvents
                     );
                 })
                 .Where(matchResult => matchResult.Events.Any())
@@ -95,7 +111,7 @@ namespace FestivalLineupBySpotify_API.Services
             return artistsWithEvents;
         }
 
-        private bool DoesEventBelongToArtist(Event festivalEvent, string[] artistNames)
+        private bool DoesEventBelongToArtist(EventInfo festivalEvent, string[] artistNames)
         {
             var festivalEventArtists = festivalEvent.Name.ToLower().Split(ArtistNameSeparators, StringSplitOptions.RemoveEmptyEntries);
             return artistNames.All(artistName => festivalEventArtists.Contains(artistName));            

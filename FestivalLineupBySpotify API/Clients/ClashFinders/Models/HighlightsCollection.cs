@@ -67,20 +67,9 @@ namespace Spotify_Alonzzo_API.Clients.ClashFinders.Models
         /// </summary>
         internal class Highlight
         {
-            /// <summary>
-            /// Priority index (1-4) for this highlight group
-            /// </summary>
             public int Index { get; set; }
 
-            /// <summary>
-            /// Short event names of artists in this priority tier
-            /// </summary>
             public List<string> ArtistsShortEventNames { get; set; } = [];
-
-            /// <summary>
-            /// Format: hl{Index}=artist1,artist2,artist3
-            /// </summary>
-            public override string ToString() => $"hl{Index}={string.Join(',', ArtistsShortEventNames)}";
         }
     }
 }
