@@ -1,8 +1,6 @@
-using Newtonsoft.Json;
-
-namespace FestivalLineupBySpotify_API.DTO
+namespace Spotify_Alonzzo_API.Controllers.DTO
 {
-    public class ClashFindersFavoritesResponse
+    public class ClashFindersLinkResponse
     {
         public string Url { get; set; }
 
@@ -12,7 +10,7 @@ namespace FestivalLineupBySpotify_API.DTO
 
         public FestivalResponse Festival { get; set; }
 
-        public ClashFindersFavoritesResponse(string url, int totalPossibleLikedTracks, float rank, FestivalResponse festival)
+        public ClashFindersLinkResponse(string url, int totalPossibleLikedTracks, float rank, FestivalResponse festival)
         {
             Url = url;
             TotalPossibleLikedTracks = totalPossibleLikedTracks;

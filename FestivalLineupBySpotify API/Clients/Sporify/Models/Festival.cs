@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace Spotify_Alonzzo_API.Clients.Models
+namespace Spotify_Alonzzo_API.Clients.Spotify.Models
 {
     public class Festival
     {

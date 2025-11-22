@@ -1,8 +1,6 @@
-﻿using FestivalLineupBySpotify_API.DTO;
+﻿using Newtonsoft.Json;
 using FestivalLineupBySpotify_API.Models;
-using Newtonsoft.Json;
-using Spotify_Alonzzo_API.Clients;
-using Spotify_Alonzzo_API.Clients.Models;
+using Spotify_Alonzzo_API.Clients.Spotify;
 using Spotify_Alonzzo_API.Services;
 using System.Text;
 
@@ -10,103 +8,65 @@ namespace FestivalLineupBySpotify_API.Services
 {
     public class SpotifyService : ISpotifyService
     {
+        private const string FavoriteArtistsCacheKey = "favorite_artists";
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly ClashFindersClient _clashFindersClient;
         private readonly ISpotifyClient _spotifyClient;
 
-        public SpotifyService(IHttpContextAccessor httpContextAccessor, ClashFindersClient clashFindersService, ISpotifyClient spotifyApiService)
+        public SpotifyService(IHttpContextAccessor httpContextAccessor, ISpotifyClient spotifyApiService)
         {
             _httpContextAccessor = httpContextAccessor;
-            _clashFindersClient = clashFindersService;
             _spotifyClient = spotifyApiService;
         }
 
-        public async Task<List<ClashFindersFavoritesResult>> GenerateClashFindersFavoritesResult(HttpRequest request, int festivalsYear)
+        public async Task<List<ArtistInfo>> GetFavoriteArtists(bool forceReloadData = false)
         {
-            var festivals = await _clashFindersClient.GetAllFestivalsByYear(festivalsYear);
-            List<ClashFindersFavoritesResult> results = new List<ClashFindersFavoritesResult>();
-            festivals.ForEach(festival => {
-                var result = this.GenerateClashFindersFavoritesResult(request, festival).Result;                
-                results.Add(result);
-            });
-            return results.OrderByDescending(r => r.Rank).ToList();
-        }
-
-        public async Task<ClashFindersFavoritesResult> GenerateClashFindersFavoritesResult(HttpRequest request, string internalFestivalName, bool forceReloadData = false)
-        {
-            var festival = await _clashFindersClient.GetFestival(internalFestivalName);
-            return await GenerateClashFindersFavoritesResult(request, festival, forceReloadData);
-        }
-
-        public async Task<List<FestivalListItemResponse>> GetAllFestivals()
-        {
-            var festivals = await _clashFindersClient.GetAllFestivals();
-            return festivals.Select(f => new FestivalListItemResponse
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext == null)
             {
-                Title = f.Title,
-                InternalName = f.InternalName,
-                StartDate = f.StartDate,
-                PrintAdvisory = f.PrintAdvisory
-            }).ToList();
-        }
-
-        public async Task<ClashFindersFavoritesResult> GenerateClashFindersFavoritesResult(HttpRequest request, Festival festival, bool forceReloadData = false)
-        {
-            var favArtists = await GetFavArtists(request, forceReloadData);
-
-            var artistsWithEvents = GenerateArtistsWithEvents(favArtists, festival.Locations.SelectMany(location => location.Events).ToList());
-            var highlightsCollection = new ClashFindersClient.HighlightsCollection();
-
-            double groupSize = (double)artistsWithEvents.Count / (double)4;
-            for (int i = 0; i < artistsWithEvents.Count; i++)
-            {
-                int normalizedScore = (int)(Math.Floor((double)(i / groupSize)));
-                var clashFindersShortArtistsNames = artistsWithEvents[i].Events
-                    .Select(e => e.Short.Split('(')[0])
-                    .Distinct()
-                    .ToList();
-                highlightsCollection[normalizedScore].ArtistsShortEventNames.AddRange(clashFindersShortArtistsNames);                                
+                throw new InvalidOperationException("No HTTP context available.");
             }
 
-            var result = new ClashFindersFavoritesResult(highlightsCollection.GenerateUrl(festival.Id), artistsWithEvents.Sum(a => a.NumOfLikedTracks), festival);
-            return result;
+            // Try to get from cache first
+            var cachedArtists = GetCachedFavoriteArtists(httpContext);
+            if (!forceReloadData && cachedArtists != null)
+            {
+                return cachedArtists;
+            }
+
+            return await GetFavoriteArtistsFromSpotify(httpContext);
         }
 
-        private async Task<List<Artist>> GetFavArtists(HttpRequest request, bool forceReloadData)
+        private List<ArtistInfo>? GetCachedFavoriteArtists(HttpContext httpContext)
         {
-            if (forceReloadData || !_httpContextAccessor.HttpContext.Session.TryGetValue("data", out byte[] dataBytes))
+            if (!httpContext.Session.TryGetValue(FavoriteArtistsCacheKey, out byte[]? dataBytes))
             {
-                return await GetFavArtistsFromSpotify(request);
+                return null;
             }
+
             var data = Encoding.UTF8.GetString(dataBytes);
-            return JsonConvert.DeserializeObject<List<Artist>>(data);
+            return JsonConvert.DeserializeObject<List<ArtistInfo>>(data) ?? new List<ArtistInfo>();
         }
 
-        private async Task<List<Artist>> GetFavArtistsFromSpotify(HttpRequest request)
+        private async Task<List<ArtistInfo>> GetFavoriteArtistsFromSpotify(HttpContext httpContext)
         {
-            var spotifyClient = _spotifyClient.CreateSpotifyClient(request.Cookies);
-            var favArtists = await _spotifyClient.GetFavoriteArtistsFromSpotify(spotifyClient);
-            _httpContextAccessor.HttpContext.Session.SetString("data", JsonConvert.SerializeObject(favArtists));
-            return favArtists;
+            var cookies = httpContext.Request.Cookies 
+                ?? throw new InvalidOperationException("No HTTP context available. Cannot access request cookies.");
+            var spotifyClient = _spotifyClient.CreateSpotifyClient(cookies);
+            var favoriteArtists = await _spotifyClient.GetFavoriteArtistsFromSpotify(spotifyClient);
+            
+            // Convert client models to domain models
+            var artistInfoList = favoriteArtists
+                .Select(a => new ArtistInfo(a.Name, a.NumOfLikedTracks))
+                .ToList();
+            
+            CacheFavoriteArtists(httpContext, artistInfoList);
+            return artistInfoList;
         }
 
-        private static List<Artist> GenerateArtistsWithEvents(List<Artist> favArtists, List<Event> festivalEvents)
+        private void CacheFavoriteArtists(HttpContext httpContext, List<ArtistInfo> artists)
         {
-            // for each fav artist, if he has a festival event, add that event to the artist's event
-            favArtists.ForEach(favArtist =>
-            {
-                var favArtistNames = favArtist.Name.ToLower().Split(" ");
-                var favArtistEvents = festivalEvents.Where(festivalEvent =>
-                {
-                    char[] separators = { ';', ',', '-', ' ' };
-                    var festivalEventArtists = festivalEvent.Name.ToLower().Split(separators, StringSplitOptions.RemoveEmptyEntries);
-                    bool isFavArtistEvent = favArtistNames.All(favArtistName => festivalEventArtists.Contains(favArtistName));
-                    return isFavArtistEvent;    
-                }).ToList();
-                
-                favArtist.Events.AddRange(favArtistEvents);
-            });
-            return favArtists.Where(favArtist => favArtist.Events.Any()).OrderByDescending(a => a.NumOfLikedTracks).ToList();
+            var serializedArtists = JsonConvert.SerializeObject(artists);
+            httpContext.Session.SetString(FavoriteArtistsCacheKey, serializedArtists);
         }
     }
 }

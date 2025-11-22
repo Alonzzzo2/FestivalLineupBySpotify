@@ -1,4 +1,4 @@
-namespace FestivalLineupBySpotify_API.Models
+namespace Spotify_Alonzzo_API.Clients.ClashFinders.Models
 {
     public enum PrintAdvisoryQuality
     {
