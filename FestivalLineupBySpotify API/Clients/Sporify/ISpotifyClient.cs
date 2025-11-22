@@ -7,6 +7,19 @@ namespace Spotify_Alonzzo_API.Clients.Spotify
         string ClientId { get; }
         Uri RedirectUri { get; }
         SpotifyAPI.Web.SpotifyClient CreateSpotifyClient(IRequestCookieCollection cookies);
-        Task<List<Artist>> GetFavoriteArtistsFromSpotify(SpotifyAPI.Web.SpotifyClient spotifyClient);
+        
+        /// <summary>
+        /// Get artists from user's liked tracks (requires authentication)
+        /// </summary>
+        /// <param name="spotifyClient">Authenticated Spotify client</param>
+        /// <returns>List of artists from liked tracks</returns>
+        Task<List<Artist>> GetArtistsFromLikedSongsAsync(SpotifyAPI.Web.SpotifyClient spotifyClient);
+        
+        /// <summary>
+        /// Get artists from a public Spotify playlist without authentication
+        /// </summary>
+        /// <param name="playlistUrl">Public playlist URL</param>
+        /// <returns>List of artists in the playlist</returns>
+        Task<List<Artist>> GetArtistsFromPublicPlaylistAsync(string playlistUrl);
     }
 }

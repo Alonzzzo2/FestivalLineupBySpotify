@@ -10,10 +10,17 @@ namespace FestivalLineupBySpotify_API.Configuration
     {
         /// <summary>
         /// Spotify application client ID
-        /// Required for OAuth flow
+        /// Required for OAuth flow and public API access
         /// </summary>
         [Required(ErrorMessage = "Spotify ClientId is required.")]
         public string ClientId { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Spotify application client secret
+        /// Required for client credentials authentication
+        /// </summary>
+        [Required(ErrorMessage = "Spotify ClientSecret is required.")]
+        public string ClientSecret { get; set; } = string.Empty;
 
         /// <summary>
         /// Spotify OAuth redirect URI

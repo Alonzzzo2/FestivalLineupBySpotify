@@ -1,9 +1,11 @@
 using FestivalLineupBySpotify_API.Configuration;
 using FestivalLineupBySpotify_API.Services;
 using FestivalLineupBySpotify_API.Services.Caching;
+using FluentValidation;
 using Microsoft.AspNetCore.DataProtection;
 using Spotify_Alonzzo_API.Clients.ClashFinders;
 using Spotify_Alonzzo_API.Clients.Spotify;
+using Spotify_Alonzzo_API.Controllers.DTO;
 using Spotify_Alonzzo_API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -42,6 +44,9 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
 });
+
+// Add FluentValidation
+builder.Services.AddValidatorsFromAssemblyContaining<GetFestivalsWithPlaylistRequest>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

@@ -17,32 +17,55 @@ namespace FestivalLineupBySpotify_API.Services
             _clashFindersService = clashFindersService;
         }
 
-        public async Task<List<ClashFindersLinkModel>> GetMatchedFestivalsByYear(int year, bool forceReloadArtistData = false)
+        public async Task<List<ClashFindersLinkModel>> GetMatchedFestivalsByYearForLikedSongs(int year)
         {
+            var artistsFromLikedSongs = await _spotifyService.GetArtistsFromLikedSongs();
             var festivals = await _clashFindersService.GetFestivalsByYear(year);
             var results = await Task.WhenAll(
-                festivals.Select(f => GetMatchedFestival(f, forceReloadArtistData))
+                festivals.Select(f => GetMatchedFestival(f, artistsFromLikedSongs))
             );
             return [.. results.OrderByDescending(r => r.Rank)];
         }
 
-        public async Task<ClashFindersLinkModel> GetMatchedFestivalByName(string internalFestivalName, bool forceReloadArtistData = false)
+        public async Task<ClashFindersLinkModel> GetMatchedFestivalByNameForLikedSongs(string internalFestivalName)
         {
+            var artistsFromLikedSongs = await _spotifyService.GetArtistsFromLikedSongs();
             var festival = await _clashFindersService.GetFestival(internalFestivalName);
-            return await GetMatchedFestival(festival, forceReloadArtistData);
+            return await GetMatchedFestival(festival, artistsFromLikedSongs);
         }
 
-        private async Task<ClashFindersLinkModel> GetMatchedFestival(FestivalData festival, bool forceReloadArtistData = false)
+        public async Task<List<ClashFindersLinkModel>> GetMatchedFestivalsByYearForPlaylist(
+            string playlistUrl, 
+            int year)
         {
-            var favoriteArtists = await _spotifyService.GetFavoriteArtists(forceReloadArtistData);
+            var playlistArtists = await _spotifyService.GetArtistsFromPublicPlaylist(playlistUrl);
+            var festivals = await _clashFindersService.GetFestivalsByYear(year);
+            var results = await Task.WhenAll(
+                festivals.Select(f => GetMatchedFestival(f, playlistArtists))
+            );
+            return [.. results.OrderByDescending(r => r.Rank)];
+        }
 
+        public async Task<ClashFindersLinkModel> GetMatchedFestivalByNameForPlaylist(
+            string playlistUrl, 
+            string internalFestivalName)
+        {
+            var playlistArtists = await _spotifyService.GetArtistsFromPublicPlaylist(playlistUrl);
+            var festival = await _clashFindersService.GetFestival(internalFestivalName);
+            return await GetMatchedFestival(festival, playlistArtists);
+        }
+
+        private async Task<ClashFindersLinkModel> GetMatchedFestival(
+            FestivalData festival, 
+            List<ArtistInfo> artistsToMatch)
+        {
             // Convert domain EventData to domain EventInfo
             var festivalEventsInfo = festival.Locations
                 .SelectMany(location => location.Events)
                 .Select(e => new EventInfo(e.Name, e.Short))
                 .ToList();
 
-            var artistsWithEvents = GenerateArtistsWithEvents(favoriteArtists, festivalEventsInfo);
+            var artistsWithEvents = GenerateArtistsWithEvents(artistsToMatch, festivalEventsInfo);
             
             // Organize artists by priority tiers
             var artistsByPriority = OrganizeArtistsByPriority(artistsWithEvents);
