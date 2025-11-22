@@ -1,13 +1,12 @@
 using FestivalLineupBySpotify_API.Models;
-using Spotify_Alonzzo_API.Clients.Spotify.Models;
 
 namespace FestivalLineupBySpotify_API.Services
 {
     public interface IClashFindersService
     {
         Task<List<FestivalListItemModel>> GetAllFestivals();
-        Task<Festival> GetFestival(string internalFestivalName);
-        Task<List<Festival>> GetFestivalsByYear(int year);
+        Task<FestivalData> GetFestival(string internalFestivalName);
+        Task<List<FestivalData>> GetFestivalsByYear(int year);
         
         /// <summary>
         /// Build a ClashFinders highlight URL for a festival with matched artists organized by priority

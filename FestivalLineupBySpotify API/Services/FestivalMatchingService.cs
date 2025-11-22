@@ -32,11 +32,11 @@ namespace FestivalLineupBySpotify_API.Services
             return await GetMatchedFestival(festival, forceReloadArtistData);
         }
 
-        private async Task<ClashFindersLinkModel> GetMatchedFestival(Festival festival, bool forceReloadArtistData = false)
+        private async Task<ClashFindersLinkModel> GetMatchedFestival(FestivalData festival, bool forceReloadArtistData = false)
         {
             var favoriteArtists = await _spotifyService.GetFavoriteArtists(forceReloadArtistData);
 
-            // Convert client Events to domain EventInfo
+            // Convert domain EventData to domain EventInfo
             var festivalEventsInfo = festival.Locations
                 .SelectMany(location => location.Events)
                 .Select(e => new EventInfo(e.Name, e.Short))
