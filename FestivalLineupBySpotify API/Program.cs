@@ -1,5 +1,6 @@
 using FestivalLineupBySpotify_API.Configuration;
 using FestivalLineupBySpotify_API.Services;
+using FestivalLineupBySpotify_API.Services.Caching;
 using Microsoft.AspNetCore.DataProtection;
 using Spotify_Alonzzo_API.Clients.ClashFinders;
 using Spotify_Alonzzo_API.Clients.Spotify;
@@ -32,6 +33,7 @@ builder.Services.AddDataProtection()
 
 // Use in-memory cache for simple scenarios (no distributed state needed with state parameter)
 builder.Services.AddDistributedMemoryCache();
+builder.Services.AddScoped<ICacheService, DistributedCacheService>();
 
 builder.Services.AddSession(options =>
 {
