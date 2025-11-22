@@ -23,7 +23,7 @@ namespace FestivalLineupBySpotify_API.Services
 
         private static readonly DistributedCacheEntryOptions FestivalDetailsCacheOptions = new()
         {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(24)
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24)
         };
 
         public ClashFindersService(ClashFindersClient clashFindersClient, ICacheService cacheService)
