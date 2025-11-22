@@ -1,17 +1,8 @@
+using Spotify_Alonzzo_API.Clients.ClashFinders.Models;
+
 namespace FestivalLineupBySpotify_API.Models
 {
-    public enum PrintAdvisoryQuality
-    {
-        Unknown = 0,
-        HaveAtIt = 1,
-        PrintIfYouHaveTo = 2,
-        NotNowSoonIPromise = 3,
-        Unknown4 = 4,
-        DontEvenThinkAboutIt = 5,
-        FantasyIsland = 6
-    }
-
-    public class FestivalListItem
+    public class FestivalListItemModel
     {
         public string Title { get; set; } = string.Empty;
         public string InternalName { get; set; } = string.Empty;

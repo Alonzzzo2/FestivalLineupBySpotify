@@ -1,6 +1,4 @@
-using Newtonsoft.Json;
-
-namespace FestivalLineupBySpotify_API.DTO
+namespace Spotify_Alonzzo_API.Controllers.DTO
 {
     public class ClashFindersFavoritesResponse
     {

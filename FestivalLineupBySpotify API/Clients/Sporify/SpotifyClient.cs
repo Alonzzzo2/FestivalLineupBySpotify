@@ -1,13 +1,13 @@
 ﻿using FestivalLineupBySpotify_API.Configuration;
+using FestivalLineupBySpotify_API.Constants;
 using Microsoft.Extensions.Options;
-using Spotify_Alonzzo_API.Clients.Models;
+using Spotify_Alonzzo_API.Clients.Sporify.Models;
 using SpotifyAPI.Web;
 
-namespace Spotify_Alonzzo_API.Clients
+namespace Spotify_Alonzzo_API.Clients.Sporify
 {
     public class SpotifyClient : ISpotifyClient
     {
-        private const string AccessTokenCookeName = "AccessToken";
         private readonly string _clientId;
         private readonly Uri _redirectUri;
 
@@ -23,9 +23,9 @@ namespace Spotify_Alonzzo_API.Clients
 
         public SpotifyAPI.Web.SpotifyClient CreateSpotifyClient(IRequestCookieCollection cookies)
         {
-            if (!cookies.TryGetValue(AccessTokenCookeName, out var accessToken))
+            if (!cookies.TryGetValue(CookieNames.SpotifyAccessToken, out var accessToken))
             {
-                throw new Exception($"Missing cookie {AccessTokenCookeName}");
+                throw new Exception($"Missing cookie {CookieNames.SpotifyAccessToken}");
             }
             if (accessToken == null)
             {
@@ -45,8 +45,8 @@ namespace Spotify_Alonzzo_API.Clients
             }
 
             var likedArtists = likedTracks.SelectMany(track => track.Track.Artists).Select(artist => artist.Name).ToList();
-            var favArtists = likedArtists.GroupBy(artist => artist).Select(g => new Artist(g.Key, g.Count())).ToList();
-            return favArtists;
+            var favoriteArtists = likedArtists.GroupBy(artist => artist).Select(g => new Artist(g.Key, g.Count())).ToList();
+            return favoriteArtists;
         }
     }
 }

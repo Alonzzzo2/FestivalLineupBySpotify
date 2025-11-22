@@ -1,9 +1,9 @@
 using Newtonsoft.Json;
-using Spotify_Alonzzo_API.Clients.Models;
+using Spotify_Alonzzo_API.Clients.Sporify.Models;
 
 namespace FestivalLineupBySpotify_API.Models
 {
-    public class ClashFindersFavoritesResult
+    public class ClashFindersLinkModel
     {
         public string Url { get; set; }
 
@@ -11,7 +11,7 @@ namespace FestivalLineupBySpotify_API.Models
 
         public Festival Festival { get; set; }
 
-        public ClashFindersFavoritesResult(string url, int totalPossibleLikesTracks, Festival festival)
+        public ClashFindersLinkModel(string url, int totalPossibleLikesTracks, Festival festival)
         {
             Url = url;
             TotalPossibleLikedTracks = totalPossibleLikesTracks;

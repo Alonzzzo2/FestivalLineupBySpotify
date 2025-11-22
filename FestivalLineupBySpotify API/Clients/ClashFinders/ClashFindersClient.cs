@@ -1,18 +1,15 @@
 ﻿using Newtonsoft.Json;
 using FestivalLineupBySpotify_API.Configuration;
-using FestivalLineupBySpotify_API.Models;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using HtmlAgilityPack;
-using Spotify_Alonzzo_API.Clients.Models;
+using Spotify_Alonzzo_API.Clients.ClashFinders.Models;
+using Spotify_Alonzzo_API.Clients.Sporify.Models;
 
-namespace Spotify_Alonzzo_API.Clients
+namespace Spotify_Alonzzo_API.Clients.ClashFinders
 {
     public class ClashFindersClient
     {
-        private const string ClashFindersUrl = "https://clashfinder.com";
-        private const string AllEventsUrl = "/data/events/events.json";
-        
         private readonly string _authUsername;
         private readonly string _authPublicKey;
         private readonly HttpClient _httpClient;
@@ -24,10 +21,10 @@ namespace Spotify_Alonzzo_API.Clients
             _authPublicKey = options.Value.AuthPublicKey;
         }
 
-        private static string LineupUrl(string eventName) => $"{ClashFindersUrl}/s/{eventName}";
+        private static string LineupUrl(string eventName) => $"{ClashFindersConstants.BaseUrl}{string.Format(ClashFindersConstants.LineupUrlPattern, eventName)}";
 
         private string LineupDataUrl(string eventName) =>
-            $"/data/event/{eventName}.json?authUsername={Uri.EscapeDataString(_authUsername)}&authPublicKey={Uri.EscapeDataString(_authPublicKey)}";
+            $"{string.Format(ClashFindersConstants.LineupDataPattern, eventName)}?authUsername={Uri.EscapeDataString(_authUsername)}&authPublicKey={Uri.EscapeDataString(_authPublicKey)}";
 
         public async Task<Festival> GetFestival(string internalFestivalName) =>
             JsonConvert.DeserializeObject<Festival>(await _httpClient.GetStringAsync(LineupDataUrl(internalFestivalName)))
@@ -35,7 +32,7 @@ namespace Spotify_Alonzzo_API.Clients
 
         public async Task<List<Festival>> GetAllFestivalsByYear(int year)
         {
-            var json = JObject.Parse(await _httpClient.GetStringAsync(AllEventsUrl));
+            var json = JObject.Parse(await _httpClient.GetStringAsync(ClashFindersConstants.AllEventsEndpoint));
             return json.Properties()
                 .Select(p => new Festival
                 {
@@ -57,7 +54,7 @@ namespace Spotify_Alonzzo_API.Clients
         public async Task<List<FestivalListItem>> GetAllFestivals()
         {
             var doc = new HtmlDocument();
-            doc.LoadHtml(await _httpClient.GetStringAsync("/list/?show=all"));
+            doc.LoadHtml(await _httpClient.GetStringAsync(ClashFindersConstants.FestivalListEndpoint));
 
             var listItems = doc.DocumentNode.SelectNodes("//tbody[@class='cfListItem']") ?? new HtmlNodeCollection(null);
 
@@ -108,30 +105,5 @@ namespace Spotify_Alonzzo_API.Clients
             int.TryParse(text[0].ToString(), out var quality) && quality >= 1 && quality <= 6
                 ? (PrintAdvisoryQuality)quality
                 : PrintAdvisoryQuality.Unknown;
-
-        public class Highlight
-        {
-            public int Index { get; set; }
-            public List<string> ArtistsShortEventNames { get; set; } = [];
-
-            public override string ToString() => $"hl{Index}={string.Join(',', ArtistsShortEventNames)}";
-        }
-
-        public class HighlightsCollection
-        {
-            public List<Highlight> Highlights { get; set; } = 
-                [new() { Index = 1 }, new() { Index = 2 }, new() { Index = 3 }, new() { Index = 4 }];
-
-            public Highlight this[int index] => Highlights[index];
-
-            public string GenerateUrl(string festivalName) =>
-                $"{LineupUrl(festivalName)}/?{string.Join('&', Highlights.Select(h => h.ToString()))}";
-        }
-
-        public class ClashFindersFavoritesURL
-        {
-            public string Url { get; set; } = string.Empty;
-            public int Score { get; set; }
-        }
     }
 }

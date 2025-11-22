@@ -1,6 +1,6 @@
-﻿using Spotify_Alonzzo_API.Clients.Models;
+﻿using Spotify_Alonzzo_API.Clients.Sporify.Models;
 
-namespace Spotify_Alonzzo_API.Clients
+namespace Spotify_Alonzzo_API.Clients.Sporify
 {
     public interface ISpotifyClient
     {

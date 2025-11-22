@@ -1,6 +1,6 @@
-using FestivalLineupBySpotify_API.Models;
+using Spotify_Alonzzo_API.Clients.ClashFinders.Models;
 
-namespace FestivalLineupBySpotify_API.DTO
+namespace Spotify_Alonzzo_API.Controllers.DTO
 {
     public class FestivalListItemResponse
     {
