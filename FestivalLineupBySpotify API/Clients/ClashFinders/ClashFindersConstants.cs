@@ -30,6 +30,6 @@ namespace Spotify_Alonzzo_API.Clients.ClashFinders
         /// <summary>
         /// Endpoint for festival list page
         /// </summary>
-        public const string FestivalListEndpoint = "/list/?show=all";
+        public const string FestivalListEndpoint = "/list/?onlyTable=true&l=all";
     }
 }
