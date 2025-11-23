@@ -97,6 +97,10 @@ namespace Spotify_Alonzzo_API.Clients.ClashFinders
                 })
                 .Where(f => f != null)
                 .Cast<FestivalListItem>()
+                .Where(item => 
+                    item.PrintAdvisory == PrintAdvisoryQuality.HaveAtIt ||
+                    item.PrintAdvisory == PrintAdvisoryQuality.PrintIfYouHaveTo)
+                .Where(item => item.StartDate > DateTime.Today.AddYears(-3))
                 .ToList();
         }
 
