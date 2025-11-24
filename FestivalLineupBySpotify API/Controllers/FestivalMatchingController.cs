@@ -137,12 +137,16 @@ namespace FestivalLineupBySpotify_API.Controllers
                 Name = model.Festival.Name,
                 Id = model.Festival.Id,
                 Url = model.Festival.Url,
-                PrintAdvisory = model.Festival.PrintAdvisory,
-                Modified = model.Festival.Modified,
-                StartDateUnix = model.Festival.StartDateUnix
+                StartDate = model.Festival.StartDate
             } : null;
 
-            return new ClashFindersLinkResponse(model.Url, model.TotalPossibleLikedTracks, model.Rank, festivalResponse);
+            return new ClashFindersLinkResponse(
+                model.Url,
+                model.MatchedArtistsCount,
+                model.MatchedTracks,
+                model.TracksPerShow,
+                model.RankingMessage,
+                festivalResponse);
         }
 
         #endregion

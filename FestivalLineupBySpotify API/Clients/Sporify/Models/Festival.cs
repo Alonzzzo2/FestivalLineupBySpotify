@@ -32,15 +32,38 @@ namespace Spotify_Alonzzo_API.Clients.Spotify.Models
         public string TzNote { get; set; }
 
         [JsonProperty("startDate")]
-        public long StartDateUnix { get; set; }
+        public string StartDateString { get; set; }
+
+        /// <summary>
+        /// Gets the start date converted from string date format (yyyy-MM-dd)
+        /// </summary>
+        public DateTime StartDate => 
+            !string.IsNullOrEmpty(StartDateString) && DateTime.TryParse(StartDateString, out var date)
+                ? date
+                : ExtractDateFromEvents();
+
+        private DateTime ExtractDateFromEvents()
+        {
+            if (Locations?.Count > 0)
+            {
+                var dates = new List<DateTime>();
+                foreach (var location in Locations)
+                {
+                    foreach (var @event in location.Events ?? new List<Event>())
+                    {
+                        if (!string.IsNullOrEmpty(@event.Start) && DateTime.TryParse(@event.Start, out var date))
+                        {
+                            dates.Add(date.Date);
+                        }
+                    }
+                }
+                return dates.Count > 0 ? dates.Min() : DateTime.MinValue;
+            }
+            return DateTime.MinValue;
+        }
 
         [JsonProperty("locations")]
         public required List<Location> Locations { get; set; }
-
-        /// <summary>
-        /// Gets the start date converted from Unix timestamp
-        /// </summary>
-        public DateTime StartDate => DateTimeOffset.FromUnixTimeSeconds(StartDateUnix).UtcDateTime;
 
         /// <summary>
         /// Gets the total number of acts by counting all events across all locations

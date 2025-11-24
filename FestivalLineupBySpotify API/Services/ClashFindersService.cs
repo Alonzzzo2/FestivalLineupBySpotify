@@ -126,9 +126,7 @@ namespace FestivalLineupBySpotify_API.Services
                 festival.Id,
                 festival.Name,
                 festival.Url,
-                festival.PrintAdvisory,
-                festival.Modified,
-                festival.StartDateUnix,
+                festival.StartDate,
                 locations
             );
         }
