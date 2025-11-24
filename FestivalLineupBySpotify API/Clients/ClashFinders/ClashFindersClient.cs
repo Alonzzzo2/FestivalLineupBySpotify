@@ -30,27 +30,6 @@ namespace Spotify_Alonzzo_API.Clients.ClashFinders
             JsonConvert.DeserializeObject<Festival>(await _httpClient.GetStringAsync(LineupDataUrl(internalFestivalName)))
                 ?? throw new InvalidOperationException("Empty events json data!");
 
-        public async Task<List<Festival>> GetAllFestivalsByYear(int year)
-        {
-            var json = JObject.Parse(await _httpClient.GetStringAsync(ClashFindersConstants.AllEventsEndpoint));
-            return json.Properties()
-                .Select(p => new Festival
-                {
-                    Modified = p.Value["modified"]?.ToString() ?? string.Empty,
-                    Name = p.Value["name"]?.ToString() ?? string.Empty,
-                    Copyright = p.Value["copyright"]?.ToString() ?? string.Empty,
-                    Id = p.Value["id"]?.ToString() ?? string.Empty,
-                    Url = p.Value["url"]?.ToString() ?? string.Empty,
-                    PrintAdvisory = (int)(p.Value["printAdvisory"] ?? 0),
-                    Timezone = p.Value["timezone"]?.ToString() ?? string.Empty,
-                    TzOffset = (int)(p.Value["tzOffset"] ?? 0),
-                    TzNote = p.Value["tzNote"]?.ToString() ?? string.Empty,
-                    Locations = p.Value["locations"]?.ToObject<List<Location>>() ?? new List<Location>()
-                })
-                .Where(f => f.StartDate.Year == year)
-                .ToList();
-        }
-
         public async Task<List<FestivalListItem>> GetAllFestivals()
         {
             var doc = new HtmlDocument();

@@ -77,8 +77,14 @@ namespace FestivalLineupBySpotify_API.Services
                 return cachedFestivals;
             }
 
-            var festivals = await _clashFindersClient.GetAllFestivalsByYear(year);
-            var festivalDataList = festivals.Select(MapToFestivalData).ToList();
+            var allFestivalsList = await GetAllFestivals();
+            var festivalsByYear = allFestivalsList
+                .Where(f => f.StartDate.Year == year)
+                .ToList();
+
+            var tasks = festivalsByYear.Select(f => GetFestival(f.InternalName)).ToList();
+            var festivalDataList = (await Task.WhenAll(tasks)).ToList();
+
             await _cacheService.SetAsync(cacheKey, festivalDataList, FestivalListCacheOptions);
             return festivalDataList;
         }
