@@ -13,19 +13,7 @@ namespace Spotify_Alonzzo_API.Controllers.DTO
         [JsonProperty("url")]
         public string Url { get; set; }
 
-        [JsonProperty("printAdvisory")]
-        public int PrintAdvisory { get; set; }
-
-        [JsonProperty("modified")]
-        public string Modified { get; set; }
-
         [JsonProperty("startDate")]
-        public long StartDateUnix { get; set; }
-
-        /// <summary>
-        /// Gets the start date converted from Unix timestamp
-        /// </summary>
-        [JsonIgnore]
-        public DateTime StartDate => DateTimeOffset.FromUnixTimeSeconds(StartDateUnix).UtcDateTime;
+        public DateTime StartDate { get; set; }
     }
 }

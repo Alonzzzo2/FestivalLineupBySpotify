@@ -55,6 +55,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ISpotifyClient, SpotifyClient>();
 builder.Services.AddScoped<ISpotifyService, SpotifyService>();
 builder.Services.AddScoped<IClashFindersService, ClashFindersService>();
+builder.Services.AddScoped<IFestivalRankingService, FestivalRankingService>();
 builder.Services.AddScoped<IFestivalMatchingService, FestivalMatchingService>();
 builder.Services.AddScoped<SpotifyAPI.Web.OAuthClient>();
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();

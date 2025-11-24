@@ -10,11 +10,16 @@ namespace FestivalLineupBySpotify_API.Services
         private static readonly char[] ArtistNameSeparators = [';', ',', '-', ' '];
         private readonly ISpotifyService _spotifyService;
         private readonly IClashFindersService _clashFindersService;
+        private readonly IFestivalRankingService _rankingService;
 
-        public FestivalMatchingService(ISpotifyService spotifyService, IClashFindersService clashFindersService)
+        public FestivalMatchingService(
+            ISpotifyService spotifyService,
+            IClashFindersService clashFindersService,
+            IFestivalRankingService rankingService)
         {
             _spotifyService = spotifyService;
             _clashFindersService = clashFindersService;
+            _rankingService = rankingService;
         }
 
         public async Task<List<ClashFindersLinkModel>> GetMatchedFestivalsByYearForLikedSongs(int year)
@@ -22,16 +27,17 @@ namespace FestivalLineupBySpotify_API.Services
             var artistsFromLikedSongs = await _spotifyService.GetArtistsFromLikedSongs();
             var festivals = await _clashFindersService.GetFestivalsByYear(year);
             var results = await Task.WhenAll(
-                festivals.Select(f => GetMatchedFestival(f, artistsFromLikedSongs))
+                festivals.Select(f => GetMatchedFestival(f, artistsFromLikedSongs, "liked songs"))
             );
-            return [.. results.OrderByDescending(r => r.Rank)];
+            // Sort by tracks per show (primary), then matched tracks (secondary)
+            return [.. results.OrderByDescending(r => r.TracksPerShow).ThenByDescending(r => r.MatchedTracks)];
         }
 
         public async Task<ClashFindersLinkModel> GetMatchedFestivalByNameForLikedSongs(string internalFestivalName)
         {
             var artistsFromLikedSongs = await _spotifyService.GetArtistsFromLikedSongs();
             var festival = await _clashFindersService.GetFestival(internalFestivalName);
-            return await GetMatchedFestival(festival, artistsFromLikedSongs);
+            return await GetMatchedFestival(festival, artistsFromLikedSongs, "liked songs");
         }
 
         public async Task<List<ClashFindersLinkModel>> GetMatchedFestivalsByYearForPlaylist(
@@ -41,9 +47,10 @@ namespace FestivalLineupBySpotify_API.Services
             var playlistArtists = await _spotifyService.GetArtistsFromPublicPlaylist(playlistUrl);
             var festivals = await _clashFindersService.GetFestivalsByYear(year);
             var results = await Task.WhenAll(
-                festivals.Select(f => GetMatchedFestival(f, playlistArtists))
+                festivals.Select(f => GetMatchedFestival(f, playlistArtists, "playlist"))
             );
-            return [.. results.OrderByDescending(r => r.Rank)];
+            // Sort by tracks per show (primary), then matched tracks (secondary)
+            return [.. results.OrderByDescending(r => r.TracksPerShow).ThenByDescending(r => r.MatchedTracks)];
         }
 
         public async Task<ClashFindersLinkModel> GetMatchedFestivalByNameForPlaylist(
@@ -52,12 +59,13 @@ namespace FestivalLineupBySpotify_API.Services
         {
             var playlistArtists = await _spotifyService.GetArtistsFromPublicPlaylist(playlistUrl);
             var festival = await _clashFindersService.GetFestival(internalFestivalName);
-            return await GetMatchedFestival(festival, playlistArtists);
+            return await GetMatchedFestival(festival, playlistArtists, "playlist");
         }
 
         private async Task<ClashFindersLinkModel> GetMatchedFestival(
-            FestivalData festival, 
-            List<ArtistInfo> artistsToMatch)
+            FestivalData festival,
+            List<ArtistInfo> artistsToMatch,
+            string sourceType)
         {
             // Convert domain EventData to domain EventInfo
             var festivalEventsInfo = festival.Locations
@@ -67,25 +75,39 @@ namespace FestivalLineupBySpotify_API.Services
 
             var artistsWithEvents = GenerateArtistsWithEvents(artistsToMatch, festivalEventsInfo);
             
-            // Organize artists by priority tiers
+            // Organize artists by priority tiers for ClashFinders URL
             var artistsByPriority = OrganizeArtistsByPriority(artistsWithEvents);
-            
-            // Let ClashFindersService handle URL building
             var url = _clashFindersService.BuildHighlightUrl(festival.Id, artistsByPriority);
+
+            // Calculate tracks per show
+            var matchedTracks = artistsWithEvents.Sum(a => a.NumOfLikedTracks);
+            var festivalSize = festival.GetNumActs();
+            var tracksPerShow = festivalSize > 0 ? (float)matchedTracks / festivalSize : 0;
+
+            // Generate data-driven ranking message (pass pre-calculated tracksPerShow)
+            var rankingMessage = _rankingService.GenerateRankingMessage(
+                matchedTracks,
+                artistsWithEvents.Count,
+                tracksPerShow,
+                sourceType);
 
             // Extract festival data to domain model
             var festivalInfo = new FestivalInfo(
                 name: festival.Name,
                 id: festival.Id,
                 url: festival.Url,
-                printAdvisory: festival.PrintAdvisory,
-                modified: festival.Modified,
-                startDateUnix: festival.StartDateUnix,
-                totalActs: festival.GetNumActs()
+                startDate: festival.StartDate,
+                totalActs: festivalSize
             );
 
-            var result = new ClashFindersLinkModel(url, artistsWithEvents.Sum(a => a.NumOfLikedTracks), festivalInfo);
-            return result;
+            return new ClashFindersLinkModel(
+                url,
+                artistsWithEvents,
+                matchedTracks,
+                artistsWithEvents.Count,
+                tracksPerShow,
+                rankingMessage,
+                festivalInfo);
         }
 
         private List<string>[] OrganizeArtistsByPriority(List<ArtistWithEvents> artists)

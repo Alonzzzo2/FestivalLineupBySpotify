@@ -3,22 +3,29 @@ namespace FestivalLineupBySpotify_API.Models
     public class ClashFindersLinkModel
     {
         public string Url { get; }
-        public int TotalPossibleLikedTracks { get; }
+        public List<ArtistWithEvents> MatchedArtists { get; }
+        public int MatchedTracks { get; }
+        public int MatchedArtistsCount { get; }
+        public float TracksPerShow { get; }
+        public string RankingMessage { get; }
         public FestivalInfo Festival { get; }
 
-        public ClashFindersLinkModel(string url, int totalPossibleLikedTracks, FestivalInfo festival)
+        public ClashFindersLinkModel(
+            string url,
+            List<ArtistWithEvents> matchedArtists,
+            int matchedTracks,
+            int matchedArtistsCount,
+            float tracksPerShow,
+            string rankingMessage,
+            FestivalInfo festival)
         {
             Url = url ?? throw new ArgumentNullException(nameof(url));
-            TotalPossibleLikedTracks = totalPossibleLikedTracks;
+            MatchedArtists = matchedArtists ?? throw new ArgumentNullException(nameof(matchedArtists));
+            MatchedTracks = matchedTracks;
+            MatchedArtistsCount = matchedArtistsCount;
+            TracksPerShow = tracksPerShow;
+            RankingMessage = rankingMessage ?? string.Empty;
             Festival = festival ?? throw new ArgumentNullException(nameof(festival));
         }
-
-        /// <summary>
-        /// Match ranking: ratio of user's liked tracks to total acts
-        /// Higher rank = more user's favorite artists performing
-        /// </summary>
-        public float Rank => Festival.TotalActs > 0 
-            ? (float)TotalPossibleLikedTracks / Festival.TotalActs 
-            : 0;
     }
 }

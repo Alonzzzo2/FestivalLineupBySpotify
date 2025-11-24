@@ -9,19 +9,15 @@ namespace FestivalLineupBySpotify_API.Models
         public string Id { get; }
         public string Name { get; }
         public string Url { get; }
-        public int PrintAdvisory { get; }
-        public string Modified { get; }
-        public long StartDateUnix { get; }
+        public DateTime StartDate { get; }
         public List<LocationData> Locations { get; }
 
-        public FestivalData(string id, string name, string url, int printAdvisory, string modified, long startDateUnix, List<LocationData> locations)
+        public FestivalData(string id, string name, string url, DateTime startDate, List<LocationData> locations)
         {
             Id = id ?? throw new ArgumentNullException(nameof(id));
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Url = url ?? throw new ArgumentNullException(nameof(url));
-            PrintAdvisory = printAdvisory;
-            Modified = modified ?? string.Empty;
-            StartDateUnix = startDateUnix;
+            StartDate = startDate;
             Locations = locations ?? throw new ArgumentNullException(nameof(locations));
         }
 
