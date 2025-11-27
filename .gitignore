@@ -2,13 +2,13 @@
 # This .gitignore file was automatically created by Microsoft(R) Visual Studio.
 ################################################################################
 
-/.vs/FestivalLineupBySpotify/v17/.suo
-/.vs/FestivalLineupBySpotify/v17
-/.vs/FestivalLineupBySpotify/FileContentIndex
-/.vs/FestivalLineupBySpotify/config
-/FestivalLineupBySpotify API/bin
-/FestivalLineupBySpotify API/obj
-/.vs/FestivalLineupBySpotify/DesignTimeBuild/.dtbcache.v2
+/.vs/FestivalMatcher/v17/.suo
+/.vs/FestivalMatcher/v17
+/.vs/FestivalMatcher/FileContentIndex
+/.vs/FestivalMatcher/config
+/FestivalMatcherAPI/bin
+/FestivalMatcherAPI/obj
+/.vs/FestivalMatcher/DesignTimeBuild/.dtbcache.v2
 /.vs/ProjectEvaluation
 /.vs
-/FestivalLineupBySpotify API/.config
+/FestivalMatcherAPI/.config
