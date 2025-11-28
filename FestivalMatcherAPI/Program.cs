@@ -35,33 +35,39 @@ builder.Services.AddDataProtection()
 
 builder.Services.AddStackExchangeRedisCache(options =>
 {
-    options.Configuration = builder.Configuration.GetConnectionString("Redis");
+    var redisConnection = builder.Configuration.GetConnectionString("Redis");
+    if (string.IsNullOrEmpty(redisConnection))
+    {
+        throw new InvalidOperationException(
+            "Redis connection string is not configured. Please set ConnectionStrings:Redis in appsettings.");
+    }
+    
+    options.Configuration = redisConnection;
     options.InstanceName = "FestivalMatcher:";
 });
 builder.Services.AddScoped<ICacheService, DistributedCacheService>();
-
-// Use in-memory session store for user-specific liked songs cache
-builder.Services.AddDistributedMemoryCache();
-
-builder.Services.AddSession(options =>
-{
-    options.IdleTimeout = TimeSpan.FromMinutes(20);
-    options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;
-    options.Cookie.SameSite = SameSiteMode.Lax;
-});
 
 // Add FluentValidation
 builder.Services.AddValidatorsFromAssemblyContaining<GetFestivalsWithPlaylistRequest>();
 
 builder.Services.AddControllers();
+// cache for liked songs, playlists and clashfinder data
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(20);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.SameSite = SameSiteMode.None;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.OperationFilter<FestivalMatcherAPI.Swagger.AddAuthorizationHeaderForCacheRefreshOperationFilter>();
 });
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<ISpotifyClient, SpotifyClient>();
+builder.Services.AddScoped<ISpotifyClientAdapter, SpotifyClientAdapter>();
 builder.Services.AddScoped<ISpotifyService, SpotifyService>();
 builder.Services.AddScoped<IClashFindersService, ClashFindersService>();
 builder.Services.AddScoped<IFestivalRankingService, FestivalRankingService>();

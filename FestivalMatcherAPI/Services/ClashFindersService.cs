@@ -1,6 +1,8 @@
+using FestivalMatcherAPI.Configuration;
 using FestivalMatcherAPI.Models;
 using FestivalMatcherAPI.Services.Caching;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Options;
 using FestivalMatcherAPI.Clients.ClashFinders;
 using FestivalMatcherAPI.Clients.ClashFinders.Models;
 using FestivalMatcherAPI.Clients.Spotify.Models;
@@ -11,71 +13,38 @@ namespace FestivalMatcherAPI.Services
     {
         private readonly ClashFindersClient _clashFindersClient;
         private readonly ICacheService _cacheService;
+        private readonly IOptions<CacheSettings> _cacheSettings;
 
         private const string AllFestivalsCacheKey = "cf:all_festivals";
         private const string FestivalCacheKeyPrefix = "cf:festival:";
         private const string FestivalsByYearCacheKeyPrefix = "cf:festivals_by_year:";
 
-        private static readonly DistributedCacheEntryOptions FestivalListCacheOptions = new()
-        {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24)
-        };
-
-        private static readonly DistributedCacheEntryOptions FestivalDetailsCacheOptions = new()
-        {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24)
-        };
-
-        public ClashFindersService(ClashFindersClient clashFindersClient, ICacheService cacheService)
+        public ClashFindersService(ClashFindersClient clashFindersClient, ICacheService cacheService, IOptions<CacheSettings> cacheSettings)
         {
             _clashFindersClient = clashFindersClient;
             _cacheService = cacheService;
+            _cacheSettings = cacheSettings;
         }
 
-        public async Task<List<FestivalListItemModel>> GetAllFestivals()
+        public async Task<List<FestivalListItemModel>> GetAllFestivalsList()
         {
-            var cachedFestivals = await _cacheService.GetAsync<List<FestivalListItemModel>>(AllFestivalsCacheKey);
-            if (cachedFestivals != null)
-            {
-                return cachedFestivals;
-            }
-
-            var festivals = await _clashFindersClient.GetAllFestivals();
-            var festivalModels = festivals.Select(f => new FestivalListItemModel
-            {
-                Title = f.Title,
-                InternalName = f.InternalName,
-                StartDate = f.StartDate,
-                PrintAdvisory = (int)f.PrintAdvisory
-            }).ToList();
-
-            await _cacheService.SetAsync(AllFestivalsCacheKey, festivalModels, FestivalListCacheOptions);
-            return festivalModels;
+            return await _cacheService.GetOrFetchAndSetAsync(AllFestivalsCacheKey, GetAllFestivalsListCallback, FestivalListCacheOptions);
         }
 
-        public async Task<FestivalData> GetFestival(string internalFestivalName)
+        public async Task<FestivalData> GetFestivalData(string internalFestivalName)
         {
             var cacheKey = $"{FestivalCacheKeyPrefix}{internalFestivalName}";
-            var cachedFestival = await _cacheService.GetAsync<FestivalData>(cacheKey);
-            if (cachedFestival != null)
-            {
-                return cachedFestival;
-            }
-
-            var festival = await _clashFindersClient.GetFestival(internalFestivalName);
-            var festivalData = MapToFestivalData(festival);
-            await _cacheService.SetAsync(cacheKey, festivalData, FestivalDetailsCacheOptions);
-            return festivalData;
+            return await _cacheService.GetOrFetchAndSetAsync(cacheKey, () => GetFestivalDataCallback(internalFestivalName), FestivalDetailsCacheOptions);
         }
 
         public async Task<List<FestivalData>> GetFestivalsByYear(int year)
         {
-            var allFestivalsList = await GetAllFestivals();
+            var allFestivalsList = await GetAllFestivalsList();
             var festivalsByYear = allFestivalsList
                 .Where(f => f.StartDate.Year == year)
                 .ToList();
 
-            var tasks = festivalsByYear.Select(f => GetFestival(f.InternalName)).ToList();
+            var tasks = festivalsByYear.Select(f => GetFestivalData(f.InternalName)).ToList();
             var festivalDataList = (await Task.WhenAll(tasks)).ToList();
 
             return festivalDataList;
@@ -126,10 +95,36 @@ namespace FestivalMatcherAPI.Services
             });
         }
 
-        /// <summary>
-        /// Maps external API model (Festival) to domain model (FestivalData)
-        /// This is the single place where the coupling to ClashFinders API exists
-        /// </summary>
+        private DistributedCacheEntryOptions FestivalListCacheOptions => new()
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(_cacheSettings.Value.FestivalListTtlHours)
+        };
+
+        private DistributedCacheEntryOptions FestivalDetailsCacheOptions => new()
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(_cacheSettings.Value.FestivalDetailsTtlHours)
+        };
+
+        private async Task<List<FestivalListItemModel>> GetAllFestivalsListCallback()
+        {
+            var festivals = await _clashFindersClient.GetAllFestivals();
+            var festivalModels = festivals.Select(f => new FestivalListItemModel
+            {
+                Title = f.Title,
+                InternalName = f.InternalName,
+                StartDate = f.StartDate,
+                PrintAdvisory = (int)f.PrintAdvisory
+            }).ToList();
+            return festivalModels;
+        }
+
+        private async Task<FestivalData> GetFestivalDataCallback(string internalFestivalName)
+        {
+            var festival = await _clashFindersClient.GetFestival(internalFestivalName);
+            var festivalData = MapToFestivalData(festival);
+            return festivalData;
+        }
+
         private static FestivalData MapToFestivalData(Festival festival)
         {
             var locations = festival.Locations.Select(loc => new LocationData(

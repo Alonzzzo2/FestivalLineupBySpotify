@@ -1,153 +1,79 @@
-using Newtonsoft.Json;
-using FestivalMatcherAPI.Models;
-using FestivalMatcherAPI.Services.Caching;
-using Microsoft.Extensions.Caching.Distributed;
 using FestivalMatcherAPI.Clients.Spotify;
 using FestivalMatcherAPI.Clients.Spotify.Utilities;
-using System.Text;
+using FestivalMatcherAPI.Configuration;
+using FestivalMatcherAPI.Models;
+using FestivalMatcherAPI.Services.Caching;
+using Microsoft.Extensions.Options;
 
 namespace FestivalMatcherAPI.Services
 {
     public class SpotifyService : ISpotifyService
     {
-        private const string ArtistsFromLikedSongsCacheKey = "liked_songs_artists";
-        private const string PublicPlaylistCacheKeyPrefix = "playlist_artists_";
-        private static readonly TimeSpan PublicPlaylistCacheTtl = TimeSpan.FromHours(1);
+        // Cache key prefixes for different scenarios
+        private const string LikedSongsCacheKeyPrefix = "liked_songs_";
+        private const string PlaylistCacheKeyPrefix = "playlist_";
         
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly ISpotifyClient _spotifyClient;
+        private readonly ISpotifyClientAdapter _spotifyClient;
         private readonly ICacheService _cacheService;
+        private readonly IOptions<CacheSettings> _cacheSettings;
 
         public SpotifyService(
             IHttpContextAccessor httpContextAccessor, 
-            ISpotifyClient spotifyApiService,
-            ICacheService cacheService)
+            ISpotifyClientAdapter spotifyApiService,
+            ICacheService cacheService,
+            IOptions<CacheSettings> cacheSettings)
         {
             _httpContextAccessor = httpContextAccessor;
             _spotifyClient = spotifyApiService;
             _cacheService = cacheService;
+            _cacheSettings = cacheSettings;
         }
 
         public async Task<List<ArtistInfo>> GetArtistsFromLikedSongs()
+        {
+            var httpContext = GetHttpContext();
+            var cookieId = httpContext.Session.Id;
+            var cacheKey = GenerateCacheKey(LikedSongsCacheKeyPrefix, cookieId);
+            var ttl = TimeSpan.FromMinutes(_cacheSettings.Value.LikedSongsTtlMinutes);
+
+            return await _cacheService.GetOrFetchAndSetAsync(cacheKey, () => FetchArtistsFromLikedSongs(httpContext), new () { SlidingExpiration = ttl });
+        }
+
+        public async Task<List<ArtistInfo>> GetArtistsFromPublicPlaylist(string playlistUrl)
+        {
+            var playlistId = SpotifyPlaylistUtility.ExtractPlaylistId(playlistUrl);
+            var cacheKey = GenerateCacheKey(PlaylistCacheKeyPrefix, playlistId);
+            var ttl = TimeSpan.FromMinutes(_cacheSettings.Value.PlaylistTtlMinutes);
+
+            return await _cacheService.GetOrFetchAndSetAsync(cacheKey, () => FetchArtistsFromPublicPlaylist(playlistUrl), new() { SlidingExpiration = ttl });
+        }
+
+        private async Task<List<ArtistInfo>> FetchArtistsFromLikedSongs(HttpContext httpContext)
+        {
+            var artistsFromLikedSongs = await _spotifyClient.GetArtistsFromLikedSongsAsync();            
+            return [.. artistsFromLikedSongs.Select(a => new ArtistInfo(a.Name, a.NumOfLikedTracks))];
+        }
+
+        private async Task<List<ArtistInfo>> FetchArtistsFromPublicPlaylist(string playlistUrl)
+        {
+            var artists = await _spotifyClient.GetArtistsFromPublicPlaylistAsync(playlistUrl);            
+            return [.. artists.Select(a => new ArtistInfo(a.Name, a.NumOfLikedTracks))];
+        }
+
+        private static string GenerateCacheKey(string prefix, string identifier)
+        {
+            return $"{prefix}{identifier}";
+        }
+
+        private HttpContext GetHttpContext()
         {
             var httpContext = _httpContextAccessor.HttpContext;
             if (httpContext == null)
             {
                 throw new InvalidOperationException("No HTTP context available.");
             }
-
-            // Try to get from cache first
-            var cachedArtists = GetCachedArtistsFromLikedSongs(httpContext);
-            if (cachedArtists != null)
-            {
-                return cachedArtists;
-            }
-
-            return await GetArtistsFromLikedSongs(httpContext);
-        }
-
-        public async Task<List<ArtistInfo>> GetArtistsFromPublicPlaylist(string playlistUrl)
-        {
-            // Validate input
-            if (string.IsNullOrWhiteSpace(playlistUrl))
-            {
-                throw new ArgumentException("Playlist URL cannot be empty", nameof(playlistUrl));
-            }
-            
-            // Generate cache key from URL using shared utility
-            var cacheKey = GeneratePlaylistCacheKey(playlistUrl);
-            
-            // Try to get from cache first
-            var cachedArtists = await _cacheService.GetAsync<List<ArtistInfo>>(cacheKey);
-            if (cachedArtists != null)
-            {
-                return cachedArtists;
-            }
-            
-            // Not in cache, fetch from Spotify
-            var artists = await GetArtistsFromPlaylistSpotify(playlistUrl);
-            
-            // Cache with 24-hour TTL
-            var cacheOptions = new DistributedCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = PublicPlaylistCacheTtl
-            };
-            
-            await _cacheService.SetAsync(cacheKey, artists, cacheOptions);
-            
-            return artists;
-        }
-
-        private List<ArtistInfo>? GetCachedArtistsFromLikedSongs(HttpContext httpContext)
-        {
-            if (!httpContext.Session.TryGetValue(ArtistsFromLikedSongsCacheKey, out byte[]? dataBytes))
-            {
-                return null;
-            }
-
-            var data = Encoding.UTF8.GetString(dataBytes);
-            return JsonConvert.DeserializeObject<List<ArtistInfo>>(data) ?? new List<ArtistInfo>();
-        }
-
-        private async Task<List<ArtistInfo>> GetArtistsFromLikedSongs(HttpContext httpContext)
-        {
-            var cookies = httpContext.Request.Cookies 
-                ?? throw new InvalidOperationException("No HTTP context available. Cannot access request cookies.");
-            var spotifyClient = _spotifyClient.CreateSpotifyClient(cookies);
-            var artistsFromLikedSongs = await _spotifyClient.GetArtistsFromLikedSongsAsync(spotifyClient);
-            
-            // Convert client models to domain models
-            var artistInfoList = artistsFromLikedSongs
-                .Select(a => new ArtistInfo(a.Name, a.NumOfLikedTracks))
-                .ToList();
-            
-            await CacheArtistsFromLikedSongsAsync(httpContext, artistInfoList);
-            return artistInfoList;
-        }
-
-        private async Task CacheArtistsFromLikedSongsAsync(HttpContext httpContext, List<ArtistInfo> artists)
-        {
-            var serializedArtists = JsonConvert.SerializeObject(artists);
-            httpContext.Session.SetString(ArtistsFromLikedSongsCacheKey, serializedArtists);
-            await httpContext.Session.CommitAsync();
-        }
-
-        /// <summary>
-        /// Generates a cache key from a playlist URL by extracting the unique playlist ID
-        /// </summary>
-        private static string GeneratePlaylistCacheKey(string playlistUrl)
-        {
-            // Extract playlist ID using shared utility
-            var playlistId = SpotifyPlaylistUtility.ExtractPlaylistId(playlistUrl);
-            return $"{PublicPlaylistCacheKeyPrefix}{playlistId}";
-        }
-
-        private async Task<List<ArtistInfo>> GetArtistsFromPlaylistSpotify(string playlistUrl)
-        {
-            try
-            {
-                // Call client to fetch artists from Spotify public API
-                var artists = await _spotifyClient.GetArtistsFromPublicPlaylistAsync(playlistUrl);
-                
-                // Convert to domain model (same conversion as authenticated flow)
-                var artistInfoList = artists
-                    .Select(a => new ArtistInfo(a.Name, a.NumOfLikedTracks))
-                    .ToList();
-                
-                return artistInfoList;
-            }
-            catch (ArgumentException ex)
-            {
-                // URL validation failed in client layer
-                throw new InvalidOperationException($"Invalid playlist URL: {ex.Message}", ex);
-            }
-            catch (Exception ex)
-            {
-                // Spotify API error or other issue
-                throw new InvalidOperationException(
-                    "Failed to retrieve artists from playlist. Please check the URL and try again.", 
-                    ex);
-            }
+            return httpContext;
         }
     }
 }

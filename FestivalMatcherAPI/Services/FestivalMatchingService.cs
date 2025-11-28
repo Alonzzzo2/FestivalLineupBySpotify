@@ -35,7 +35,7 @@ namespace FestivalMatcherAPI.Services
         public async Task<ClashFindersLinkModel> GetMatchedFestivalByNameForLikedSongs(string internalFestivalName)
         {
             var artistsFromLikedSongs = await _spotifyService.GetArtistsFromLikedSongs();
-            var festival = await _clashFindersService.GetFestival(internalFestivalName);
+            var festival = await _clashFindersService.GetFestivalData(internalFestivalName);
             return await GetMatchedFestival(festival, artistsFromLikedSongs, "liked songs");
         }
 
@@ -57,7 +57,7 @@ namespace FestivalMatcherAPI.Services
             string internalFestivalName)
         {
             var playlistArtists = await _spotifyService.GetArtistsFromPublicPlaylist(playlistUrl);
-            var festival = await _clashFindersService.GetFestival(internalFestivalName);
+            var festival = await _clashFindersService.GetFestivalData(internalFestivalName);
             return await GetMatchedFestival(festival, playlistArtists, "playlist");
         }
 
