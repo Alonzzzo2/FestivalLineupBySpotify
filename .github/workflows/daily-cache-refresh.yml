@@ -16,6 +16,7 @@ jobs:
       - name: Hit the Refresh Endpoint
         run: |
           curl -X POST ${{ secrets.RENDER_REFRESH_URL }} \
-          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+          -H "Authorization: Bearer ${{ secrets.RENDER_REFRESH_URL }}" \
           --fail \
+
           --verbose
