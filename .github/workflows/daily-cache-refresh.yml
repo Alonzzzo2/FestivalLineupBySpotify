@@ -1,0 +1,21 @@
+name: Daily Redis Refresh
+
+on:
+  # 1. Schedule: Runs at 00:00 UTC every day
+  schedule:
+    - cron: '0 0 * * *'
+  
+  # 2. Workflow Dispatch: Allows you to click a button to run it manually (for testing)
+  workflow_dispatch:
+
+jobs:
+  refresh_cache:
+    name: Call Render Endpoint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit the Refresh Endpoint
+        run: |
+          curl -X POST ${{ secrets.RENDER_REFRESH_URL }} \
+          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+          --fail \
+          --verbose
