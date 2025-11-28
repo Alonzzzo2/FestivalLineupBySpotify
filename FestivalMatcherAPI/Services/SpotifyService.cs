@@ -101,14 +101,15 @@ namespace FestivalMatcherAPI.Services
                 .Select(a => new ArtistInfo(a.Name, a.NumOfLikedTracks))
                 .ToList();
             
-            CacheArtistsFromLikedSongs(httpContext, artistInfoList);
+            await CacheArtistsFromLikedSongsAsync(httpContext, artistInfoList);
             return artistInfoList;
         }
 
-        private void CacheArtistsFromLikedSongs(HttpContext httpContext, List<ArtistInfo> artists)
+        private async Task CacheArtistsFromLikedSongsAsync(HttpContext httpContext, List<ArtistInfo> artists)
         {
             var serializedArtists = JsonConvert.SerializeObject(artists);
             httpContext.Session.SetString(ArtistsFromLikedSongsCacheKey, serializedArtists);
+            await httpContext.Session.CommitAsync();
         }
 
         /// <summary>

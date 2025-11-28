@@ -70,13 +70,6 @@ namespace FestivalMatcherAPI.Services
 
         public async Task<List<FestivalData>> GetFestivalsByYear(int year)
         {
-            var cacheKey = $"{FestivalsByYearCacheKeyPrefix}{year}";
-            var cachedFestivals = await _cacheService.GetAsync<List<FestivalData>>(cacheKey);
-            if (cachedFestivals != null)
-            {
-                return cachedFestivals;
-            }
-
             var allFestivalsList = await GetAllFestivals();
             var festivalsByYear = allFestivalsList
                 .Where(f => f.StartDate.Year == year)
@@ -85,7 +78,6 @@ namespace FestivalMatcherAPI.Services
             var tasks = festivalsByYear.Select(f => GetFestival(f.InternalName)).ToList();
             var festivalDataList = (await Task.WhenAll(tasks)).ToList();
 
-            await _cacheService.SetAsync(cacheKey, festivalDataList, FestivalListCacheOptions);
             return festivalDataList;
         }
 
@@ -109,6 +101,29 @@ namespace FestivalMatcherAPI.Services
             }
 
             return highlightsCollection.GenerateUrl(festivalId);
+        }
+
+        public async Task RefreshCacheAsync()
+        {
+            var festivals = await _clashFindersClient.GetAllFestivals();
+            var festivalModels = festivals.Select(f => new FestivalListItemModel
+            {
+                Title = f.Title,
+                InternalName = f.InternalName,
+                StartDate = f.StartDate,
+                PrintAdvisory = (int)f.PrintAdvisory
+            }).ToList();
+
+            await _cacheService.SetAsync(AllFestivalsCacheKey, festivalModels, FestivalListCacheOptions);
+
+            await Parallel.ForEachAsync(festivalModels, new ParallelOptions { MaxDegreeOfParallelism = 5 }, async (festivalSummary, ct) =>
+            {
+                var festival = await _clashFindersClient.GetFestival(festivalSummary.InternalName);
+                var festivalData = MapToFestivalData(festival);
+                var cacheKey = $"{FestivalCacheKeyPrefix}{festivalSummary.InternalName}";
+                await _cacheService.SetAsync(cacheKey, festivalData, FestivalDetailsCacheOptions);
+                await Task.Delay(100, ct); // Optional: be gentle to clashfinder.com
+            });
         }
 
         /// <summary>

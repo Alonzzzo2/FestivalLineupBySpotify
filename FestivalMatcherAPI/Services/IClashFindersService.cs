@@ -15,5 +15,6 @@ namespace FestivalMatcherAPI.Services
         /// <param name="artistsByPriority">Array of artist lists, one per priority tier (up to 4)</param>
         /// <returns>ClashFinders URL with highlight parameters</returns>
         string BuildHighlightUrl(string festivalId, List<string>[] artistsByPriority);
+        Task RefreshCacheAsync();
     }
 }

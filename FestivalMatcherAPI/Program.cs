@@ -13,6 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<SpotifySettings>(builder.Configuration.GetSection("Spotify"));
 builder.Services.Configure<ClashFindersSettings>(builder.Configuration.GetSection("ClashFinders"));
 builder.Services.Configure<CorsSettings>(builder.Configuration.GetSection("Cors"));
+builder.Services.Configure<CacheSettings>(builder.Configuration.GetSection("Cache"));
 
 // Prefer configuration-driven URLs. Only bind Kestrel to a specific port
 // when the environment or configuration provides a numeric PORT (e.g., in containers/PAAS).
@@ -29,12 +30,18 @@ if (!string.IsNullOrEmpty(portValue) && int.TryParse(portValue, out var port))
 
 // Configure Data Protection with persistent key storage
 builder.Services.AddDataProtection()
-    .SetApplicationName("FestivalLineupBySpotify")
+    .SetApplicationName("FestivalMatcher")
     .PersistKeysToFileSystem(new DirectoryInfo("/tmp/dataprotection-keys"));
 
-// Use in-memory cache for simple scenarios (no distributed state needed with state parameter)
-builder.Services.AddDistributedMemoryCache();
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis");
+    options.InstanceName = "FestivalMatcher:";
+});
 builder.Services.AddScoped<ICacheService, DistributedCacheService>();
+
+// Use in-memory session store for user-specific liked songs cache
+builder.Services.AddDistributedMemoryCache();
 
 builder.Services.AddSession(options =>
 {
@@ -49,7 +56,10 @@ builder.Services.AddValidatorsFromAssemblyContaining<GetFestivalsWithPlaylistReq
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.OperationFilter<FestivalMatcherAPI.Swagger.AddAuthorizationHeaderForCacheRefreshOperationFilter>();
+});
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ISpotifyClient, SpotifyClient>();
 builder.Services.AddScoped<ISpotifyService, SpotifyService>();
