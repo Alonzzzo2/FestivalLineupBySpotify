@@ -22,7 +22,7 @@ namespace FestivalMatcherAPI.Controllers
         [HttpGet("list/all")]
         public async Task<List<FestivalListItemResponse>> GetAllFestivals()
         {
-            var festivals = await _clashFindersService.GetAllFestivals();
+            var festivals = await _clashFindersService.GetAllFestivalsList();
             return festivals.Select(f => new FestivalListItemResponse
             {
                 Title = f.Title,

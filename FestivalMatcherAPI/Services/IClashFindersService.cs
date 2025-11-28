@@ -4,8 +4,8 @@ namespace FestivalMatcherAPI.Services
 {
     public interface IClashFindersService
     {
-        Task<List<FestivalListItemModel>> GetAllFestivals();
-        Task<FestivalData> GetFestival(string internalFestivalName);
+        Task<List<FestivalListItemModel>> GetAllFestivalsList();
+        Task<FestivalData> GetFestivalData(string internalFestivalName);
         Task<List<FestivalData>> GetFestivalsByYear(int year);
         
         /// <summary>
