@@ -41,8 +41,18 @@ builder.Services.AddStackExchangeRedisCache(options =>
         throw new InvalidOperationException(
             "Redis connection string is not configured. Please set ConnectionStrings:Redis in appsettings.");
     }
+
+    // Sanitize connection string: StackExchange.Redis works best with "host:port" rather than "redis://host:port"
+    // Also handle potential double-port issues if they exist in the env var
+    var cleanConnection = redisConnection.Replace("redis://", "", StringComparison.OrdinalIgnoreCase);
     
-    options.Configuration = redisConnection;
+    // If the user somehow has host:6379:6379, let's try to fix it blindly if it ends with :6379:6379
+    if (cleanConnection.EndsWith(":6379:6379"))
+    {
+        cleanConnection = cleanConnection.Substring(0, cleanConnection.Length - 5);
+    }
+
+    options.Configuration = cleanConnection;
     options.InstanceName = "FestivalMatcher:";
 });
 builder.Services.AddScoped<ICacheService, DistributedCacheService>();
