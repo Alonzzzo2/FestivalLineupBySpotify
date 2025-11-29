@@ -13,16 +13,19 @@ namespace FestivalMatcherAPI.Controllers
         private readonly IAuthenticationService _authenticationService;
         private readonly IConfiguration _configuration;
         private readonly IWebHostEnvironment _env;
+        private readonly ILogger<AuthenticationController> _logger;
         private static readonly TimeSpan TokenExpiration = TimeSpan.FromHours(1);
 
         public AuthenticationController(
             IAuthenticationService authenticationService,
             IConfiguration configuration,
-            IWebHostEnvironment env)
+            IWebHostEnvironment env,
+            ILogger<AuthenticationController> logger)
         {
             _authenticationService = authenticationService;
             _configuration = configuration;
             _env = env;
+            _logger = logger;
         }
 
         /// <summary>
@@ -47,6 +50,7 @@ namespace FestivalMatcherAPI.Controllers
         [HttpGet("login")]
         public string Login()
         {
+            _logger.LogInformation("Initiating Spotify login flow");
             return _authenticationService.GenerateSpotifyLoginUrl();
         }
 
@@ -62,14 +66,17 @@ namespace FestivalMatcherAPI.Controllers
         {
             try
             {
+                _logger.LogInformation("Received Spotify callback with code (length: {CodeLength})", code?.Length ?? 0);
                 var accessToken = await _authenticationService.ExchangeCodeForAccessToken(code, state);
                 SetAccessTokenCookie(accessToken);
 
                 var frontendUrl = _configuration[FrontendUrlConfigKey]!;
+                _logger.LogInformation("Authentication successful, redirecting to {FrontendUrl}", frontendUrl);
                 return Redirect(frontendUrl);
             }
             catch (InvalidOperationException ex)
             {
+                _logger.LogWarning(ex, "Authentication failed during callback: {Message}", ex.Message);
                 return BadRequest(ex.Message);
             }
         }
@@ -81,6 +88,7 @@ namespace FestivalMatcherAPI.Controllers
         [HttpPost("logout")]
         public IActionResult Logout()
         {
+            _logger.LogInformation("Logging out user");
             Response.Cookies.Delete(CookieNames.SpotifyAccessToken);
             return Ok();
         }

@@ -14,12 +14,17 @@ namespace FestivalMatcherAPI.Clients.ClashFinders
         private readonly string _authUsername;
         private readonly string _authPublicKey;
         private readonly HttpClient _httpClient;
+        private readonly ILogger<ClashFindersClient> _logger;
 
-        public ClashFindersClient(IOptions<ClashFindersSettings> options, HttpClient httpClient)
+        public ClashFindersClient(
+            IOptions<ClashFindersSettings> options, 
+            HttpClient httpClient,
+            ILogger<ClashFindersClient> logger)
         {
             _httpClient = httpClient;
             _authUsername = options.Value.AuthUsername;
             _authPublicKey = options.Value.AuthPublicKey;
+            _logger = logger;
         }
 
         private static string LineupUrl(string eventName) => $"{ClashFindersConstants.BaseUrl}{string.Format(ClashFindersConstants.LineupUrlPattern, eventName)}";
@@ -70,8 +75,9 @@ namespace FestivalMatcherAPI.Clients.ClashFinders
                             }
                             : null;
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        _logger.LogWarning(ex, "Failed to parse festival list item. Skipping.");
                         return null;
                     }
                 })

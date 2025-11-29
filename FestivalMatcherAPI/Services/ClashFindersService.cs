@@ -14,25 +14,33 @@ namespace FestivalMatcherAPI.Services
         private readonly ClashFindersClient _clashFindersClient;
         private readonly ICacheService _cacheService;
         private readonly IOptions<CacheSettings> _cacheSettings;
+        private readonly ILogger<ClashFindersService> _logger;
 
         private const string AllFestivalsCacheKey = "cf:all_festivals";
         private const string FestivalCacheKeyPrefix = "cf:festival:";
         private const string FestivalsByYearCacheKeyPrefix = "cf:festivals_by_year:";
 
-        public ClashFindersService(ClashFindersClient clashFindersClient, ICacheService cacheService, IOptions<CacheSettings> cacheSettings)
+        public ClashFindersService(
+            ClashFindersClient clashFindersClient, 
+            ICacheService cacheService, 
+            IOptions<CacheSettings> cacheSettings,
+            ILogger<ClashFindersService> logger)
         {
             _clashFindersClient = clashFindersClient;
             _cacheService = cacheService;
             _cacheSettings = cacheSettings;
+            _logger = logger;
         }
 
         public async Task<List<FestivalListItemModel>> GetAllFestivalsList()
         {
+            _logger.LogDebug("Retrieving all festivals list");
             return await _cacheService.GetOrFetchAndSetAsync(AllFestivalsCacheKey, GetAllFestivalsListCallback, FestivalListCacheOptions);
         }
 
         public async Task<FestivalData> GetFestivalData(string internalFestivalName)
         {
+            _logger.LogDebug("Retrieving festival data for {InternalName}", internalFestivalName);
             var cacheKey = $"{FestivalCacheKeyPrefix}{internalFestivalName}";
             return await _cacheService.GetOrFetchAndSetAsync(cacheKey, () => GetFestivalDataCallback(internalFestivalName), FestivalDetailsCacheOptions);
         }
@@ -74,6 +82,7 @@ namespace FestivalMatcherAPI.Services
 
         public async Task RefreshCacheAsync()
         {
+            _logger.LogInformation("Starting full cache refresh");
             var festivals = await _clashFindersClient.GetAllFestivals();
             var festivalModels = festivals.Select(f => new FestivalListItemModel
             {
@@ -83,16 +92,27 @@ namespace FestivalMatcherAPI.Services
                 PrintAdvisory = (int)f.PrintAdvisory
             }).ToList();
 
+            _logger.LogInformation("Fetched {Count} festivals from ClashFinder. Updating list cache.", festivalModels.Count);
             await _cacheService.SetAsync(AllFestivalsCacheKey, festivalModels, FestivalListCacheOptions);
 
+            _logger.LogInformation("Starting parallel fetch of details for all festivals");
             await Parallel.ForEachAsync(festivalModels, new ParallelOptions { MaxDegreeOfParallelism = 5 }, async (festivalSummary, ct) =>
             {
-                var festival = await _clashFindersClient.GetFestival(festivalSummary.InternalName);
-                var festivalData = MapToFestivalData(festival);
-                var cacheKey = $"{FestivalCacheKeyPrefix}{festivalSummary.InternalName}";
-                await _cacheService.SetAsync(cacheKey, festivalData, FestivalDetailsCacheOptions);
-                await Task.Delay(100, ct); // Optional: be gentle to clashfinder.com
+                try 
+                {
+                    var festival = await _clashFindersClient.GetFestival(festivalSummary.InternalName);
+                    var festivalData = MapToFestivalData(festival);
+                    var cacheKey = $"{FestivalCacheKeyPrefix}{festivalSummary.InternalName}";
+                    await _cacheService.SetAsync(cacheKey, festivalData, FestivalDetailsCacheOptions);
+                    _logger.LogDebug("Cached details for {InternalName}", festivalSummary.InternalName);
+                    await Task.Delay(100, ct); // Optional: be gentle to clashfinder.com
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to cache details for {InternalName}", festivalSummary.InternalName);
+                }
             });
+            _logger.LogInformation("Cache refresh completed");
         }
 
         private DistributedCacheEntryOptions FestivalListCacheOptions => new()
