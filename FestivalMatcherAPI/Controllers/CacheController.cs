@@ -1,6 +1,7 @@
 using FestivalMatcherAPI.Configuration;
 using FestivalMatcherAPI.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
 
 namespace FestivalMatcherAPI.Controllers
