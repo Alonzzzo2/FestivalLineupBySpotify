@@ -108,4 +108,38 @@ app.UseMiddleware<ExceptionMiddleware>();
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
+
+// Log startup information
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+logger.LogInformation("Starting FestivalMatcher API");
+logger.LogInformation("Environment: {Environment}", app.Environment.EnvironmentName);
+logger.LogInformation("Port: {Port}", portValue ?? "Not configured (using default)");
+
+var cors = builder.Configuration.GetSection("Cors").Get<CorsSettings>();
+if (cors?.AllowedOrigins != null)
+{
+    logger.LogInformation("Allowed CORS Origins: {Origins}", string.Join(", ", cors.AllowedOrigins));
+}
+else
+{
+    logger.LogWarning("No CORS origins configured");
+}
+
+var redisConn = builder.Configuration.GetConnectionString("Redis");
+if (!string.IsNullOrEmpty(redisConn))
+{
+    // Mask the password/host for safety if needed, or just log existence
+    // Simple masking: show only the beginning
+    var maskedRedis = redisConn.Length > 10 ? redisConn.Substring(0, 10) + "..." : "Set but short";
+    logger.LogInformation("Redis Connection: {RedisConn}", maskedRedis);
+}
+else
+{
+    logger.LogError("Redis connection string is MISSING");
+}
+
+var spotifySettings = builder.Configuration.GetSection("Spotify").Get<SpotifySettings>();
+logger.LogInformation("Spotify Client ID: {ClientId}", spotifySettings?.ClientId ?? "Missing");
+logger.LogInformation("Spotify Redirect URI: {RedirectUri}", spotifySettings?.RedirectUri ?? "Missing");
+
 app.Run();
